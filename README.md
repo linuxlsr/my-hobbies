@@ -16,6 +16,14 @@ These will be pursued after at least one of the above is completed.
 - [ ] [Music study such as Blues, Bluegrass, etc]
 - [ ] [Other Kubernetes certification]
 - [ ] [Fiction writing / self publishing]
+- [ ] [AWS Certifications]
+  - recert Pro Solutions Architect
+  - recert Pro DevOps Engineer
+  - Networking Specialty
+  - Machine Learning Specialty
+  - Security Specialty
+  - Database Specialty
+  - Analytics Specialty
 
 So, lots of ideas and ambition, just need some structure and focus.
 
