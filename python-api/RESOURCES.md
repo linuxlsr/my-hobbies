@@ -1,0 +1,2 @@
+- [Udemy Course FastAPI](https://www.udemy.com/course/rest-api-flask-and-python/)
+- [My repo](https://github.com/linuxlsr/PyCharmProjects/tree/main/fastApiProject)
