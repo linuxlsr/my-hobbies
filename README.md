@@ -5,9 +5,9 @@ I had trouble answering the question 'What are your hobbies?' and I realized I s
 
 
 ## Hobbies
-- [ ] [Kubernetes studies towards certification]
-- [ ] [Python Programming, specifically API development]
-- [ ] [Pi / Arduino projects]
+- [ ] [Kubernetes studies towards certification](https://github.com/linuxlsr/my-hobbies/tree/k8s-cka)
+- [ ] [Python Programming, specifically API development](https://github.com/linuxlsr/PyCharmProjects/tree/main/fastApiProject)
+- [ ] [Pi / Arduino projects](https://github.com/linuxlsr/my-hobbies/tree/pi-arduino)
 - [ ] [Blues Guitar]
 - [ ] [Warhammer 40k models]
 
