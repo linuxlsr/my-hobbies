@@ -1,6 +1,9 @@
 # my-hobbies
 I had trouble answering the question 'What are your hobbies?' and I realized I spend most of my energy on work, and little energy on things I might enjoy, such as hobbies. To that end, this repo is an effort to organize my thoughts and efforts towards my hobbies, which will be expressed as branches. Completed projects or goals will be committed to main. Let's see how this goes!
 
+- [roadmap](https://github.com/users/linuxlsr/projects/6)
+
+
 ## Hobbies
 - [ ] [Kubernetes studies towards certification]
 - [ ] [Python Programming, specifically API development]
