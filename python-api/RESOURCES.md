@@ -1,2 +1,5 @@
 - [Udemy Course FastAPI](https://www.udemy.com/course/rest-api-flask-and-python/)
 - [My repo](https://github.com/linuxlsr/PyCharmProjects/tree/main/fastApiProject)
+- [Python Projects](https://www.geeksforgeeks.org/python-projects-beginner-to-advanced/)
+- [Number Guessing Game](https://www.geeksforgeeks.org/number-guessing-game-in-python/)
+- 
