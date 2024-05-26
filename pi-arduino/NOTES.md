@@ -7,3 +7,12 @@
 - [Blog](https://www.leorover.tech/post/raspberry-pi-or-arduino-when-to-choose-which)
 
 ##### purchased ardiuno starter kit [elegoo](https://www.amazon.com/dp/B01D8KOZF4?psc=1&smid=A2WWHQ25ENKVJ1&ref_=chk_typ_imgToDp)
+
+240525
+- set up arduino ide on windows 11, could not see the controller
+- set up arduino ide and connected to pi
+- completed blinking light project
+
+240526
+- completed push button light project, with bread board, resistor, and push button.
+- explored kit components.
