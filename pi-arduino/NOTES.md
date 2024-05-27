@@ -10,7 +10,7 @@
 
 240525
 - set up arduino ide on windows 11, could not see the controller
-- set up arduino ide and connected to pi
+- set up arduino ide on Raspian (couldn't make installer with kit work, used add /remove programs to pick up packages) and connected to pi
 - completed blinking light project
 
 240526
