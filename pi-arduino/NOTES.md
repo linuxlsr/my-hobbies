@@ -12,7 +12,9 @@
 - set up arduino ide on windows 11, could not see the controller
 - set up arduino ide on Raspian (couldn't make installer with kit work, used add /remove programs to pick up packages) and connected to pi
 - completed blinking light project
+- ![lab station](images/lab_station.png)
 
 240526
 - completed push button light project, with bread board, resistor, and push button.
 - explored kit components.
+- ![pi-arduino](images/pi-arduino.png)
