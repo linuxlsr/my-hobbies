@@ -18,3 +18,7 @@
 - completed push button light project, with bread board, resistor, and push button.
 - explored kit components.
 - ![pi-arduino](images/pi-arduino.png)
+
+240601
+- installed Raspberry 5
+- updated software, installed arduino and vscode IDEs
