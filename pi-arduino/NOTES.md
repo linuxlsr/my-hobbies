@@ -22,3 +22,9 @@
 240601
 - installed Raspberry 5
 - updated software, installed arduino and vscode IDEs
+
+240607
+- attending [South East Linux Fest](https://southeastlinuxfest.org/self-2014-2/)
+- Exploring home automation tools,
+  -  [Script Server](https://github.com/bugy/script-server)
+- AI suggested: such as [Home Assistant](https://www.home-assistant.io/), [OpenHAB](https://www.openhab.org/), and [Node-RED](https://nodered.org/) 
