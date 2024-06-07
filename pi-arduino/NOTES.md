@@ -27,4 +27,5 @@
 - attending [South East Linux Fest](https://southeastlinuxfest.org/self-2014-2/)
 - Exploring home automation tools,
   -  [Script Server](https://github.com/bugy/script-server)
+  - [VimWiki](https://vimwiki.github.io/vimwikiwiki/)
 - AI suggested: such as [Home Assistant](https://www.home-assistant.io/), [OpenHAB](https://www.openhab.org/), and [Node-RED](https://nodered.org/) 
