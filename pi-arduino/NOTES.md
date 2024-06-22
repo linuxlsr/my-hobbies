@@ -29,3 +29,14 @@
   -  [Script Server](https://github.com/bugy/script-server)
   - [VimWiki](https://vimwiki.github.io/vimwikiwiki/)
 - AI suggested: such as [Home Assistant](https://www.home-assistant.io/), [OpenHAB](https://www.openhab.org/), and [Node-RED](https://nodered.org/) 
+
+
+- bought [magnifying glass headset](https://www.amazon.com/dp/B07T4KPYN2?psc=1&ref=ppx_yo2ov_dt_b_product_details)
+- realized I had the LED in backwards, which is why it wouldn't work with the switch, only the onboard led was lighting up.
+- updated code to get a better "debounce" state.
+
+
+
+- bought [magnifying glass headset](https://www.amazon.com/dp/B07T4KPYN2?psc=1&ref=ppx_yo2ov_dt_b_product_details)
+- realized I had the LED in backwards, which is why it wouldn't work with the switch, only the onboard led was lighting up.
+- updated code to get a better "debounce" state.
