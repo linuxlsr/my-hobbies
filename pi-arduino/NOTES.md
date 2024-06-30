@@ -34,3 +34,9 @@
 - bought [magnifying glass headset](https://www.amazon.com/dp/B07T4KPYN2?psc=1&ref=ppx_yo2ov_dt_b_product_details)
 - realized I had the LED in backwards, which is why it wouldn't work with the switch, only the onboard led was lighting up.
 - updated code to get a better "debounce" state.
+
+240630
+- Created fade in / fade out for a pulsing LED.
+- Explored positive / negative buses on breadboard. Not able to leverage them yet; using them instead of punching down right next to the resistor or LED lead didn't functino as expected.
+- Combined LED and toggle as before. NOw fades in and out when pressed, otherwise off.
+-![led](images/led.png)
