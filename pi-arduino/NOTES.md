@@ -39,5 +39,7 @@
 - Created fade in / fade out for a pulsing LED.
 -![led](images/led.png)
 - Explored positive / negative buses on breadboard. Not able to leverage them yet; using them instead of punching down right next to the resistor or LED lead didn't functino as expected.
-- Combined LED and toggle as before. NOw fades in and out when pressed, otherwise off.
+- Combined LED and toggle as before. Now fades in and out when pressed, otherwise off.
 - ![led-button](images/led_button.png)
+- substituted light sensor for push button
+- ![led-bush-light -sensor](images/led-light-sensor.png)
