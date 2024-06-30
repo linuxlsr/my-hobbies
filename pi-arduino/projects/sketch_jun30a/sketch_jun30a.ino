@@ -18,7 +18,7 @@ void loop() {
   }
 
   for (i=255; i > 0; i--) {
-    analogWrite(LED, i);        .. fade out light
+    analogWrite(LED, i);        // fade out light
     delay(10);
   }
 
