@@ -43,3 +43,9 @@
 - ![led-button](images/led_button.png)
 - substituted light sensor for push button
 - ![led-bush-light -sensor](images/led-light-sensor.png)
+
+240707
+- Updated board and code to example 5-4, no real difference observed.
+- Updated to 5-5, used serial monitor to observe values sent from LDR (light dependent resistor) sensor.
+- Can't find the MOSFET (metal-oxide-semiconductor field-effect transistor) in kit, not listed in contents, nothing matches the drawings. Amazon to the rescue!
+    [Assorted MOSFET Kit](https://www.amazon.com/BOJACK-IRFZ44N-IRF510N-transistors-Assortment/dp/B082J3F8HJ/ref=sr_1_3?crid=B436YM40HLT4&dib=eyJ2IjoiMSJ9.dKMSul7w2BlSv6jy3UPxJ5U3AVpk_PU86hDbPkIK49dwk_m1n2BmJiTSTLIL6GOBn95das7w9b6ULMhua2GNyyTgKjVP9EJVwPOy5WgAlXCmVNHLjZLeCofle5L_YDA-Bvvzpb_hlxTwejdq0cca22iZn9Wfm0j-rdUtu0OAROO5QuN6vLlSzeMjoH4VTPUu19peH4v1-VToUJNWXckjkBk3CEKegZnWGGWoCepWVQI.aCSWOzMTh9viigFywWUlyOSc9_wvS9xzQjQMglXBjPU&dib_tag=se&keywords=MOSFET&qid=1720371217&sprefix=mosfet%2Caps%2C156&sr=8-3)
