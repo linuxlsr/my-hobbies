@@ -5,6 +5,7 @@ I had trouble answering the question 'What are your hobbies?' and I realized I s
 
 
 ## Hobbies
+- [ ] [AI Practice](https://github.com/linuxlsr/my-hobbies/tree/ai_practice)
 - [ ] [Kubernetes studies towards certification](https://github.com/linuxlsr/my-hobbies/tree/k8s-cka)
 - [ ] [Python Programming, specifically API development](https://github.com/linuxlsr/PyCharmProjects/tree/main/fastApiProject)
 - [ ] [Pi / Arduino projects](https://github.com/linuxlsr/my-hobbies/tree/pi-arduino)
