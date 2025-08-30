@@ -41,7 +41,7 @@ class LLMParser:
                 if len(words) >= 2:
                     last_word = words[-1]
                     # Check if last word looks like instance name (not a command word)
-                    if last_word not in ['status', 'vulns', 'vulnerabilities', 'cpu', 'memory', 'network', 'metrics', 'patch', 'window', 'schedule', 'all']:
+                    if last_word not in ['status', 'vulns', 'vulnerabilities', 'cpu', 'memory', 'network', 'metrics', 'patch', 'window', 'schedule', 'events', 'security', 'cloudtrail', 'audit', 'monitor', 'all']:
                         instance_id = last_word
         
         prompt = f"""Parse: '{user_input}'
@@ -94,6 +94,10 @@ JSON:"""
                 command = 'list'
             elif 'resolve' in input_lower and ('vuln' in input_lower or 'vulnerabilities' in input_lower):
                 command = 'resolve_vulns'
+            elif 'security' in input_lower and ('events' in input_lower or 'monitor' in input_lower):
+                command = 'security_events'
+            elif 'events' in input_lower or 'cloudtrail' in input_lower or 'audit' in input_lower:
+                command = 'cloudtrail_events'
             elif 'vuln' in input_lower or 'vulnerabilities' in input_lower or 'security' in input_lower:
                 command = 'vulnerabilities'
             else:
@@ -144,7 +148,7 @@ JSON:"""
                 if len(words) >= 2:
                     last_word = words[-1]
                     # Check if last word looks like instance name (not a command word)
-                    if last_word not in ['status', 'vulns', 'vulnerabilities', 'cpu', 'memory', 'network', 'metrics', 'patch', 'window', 'schedule', 'all']:
+                    if last_word not in ['status', 'vulns', 'vulnerabilities', 'cpu', 'memory', 'network', 'metrics', 'patch', 'window', 'schedule', 'events', 'security', 'cloudtrail', 'audit', 'monitor', 'all']:
                         instance_ids = [last_word]
         
         # Simple command detection
@@ -165,8 +169,10 @@ JSON:"""
             command = 'bulk_resolve'
         elif any(word in text_lower for word in ['vuln', 'vulns', 'vulnerabilities', 'security', 'cve']):
             command = 'vulnerabilities'
-        elif any(word in text_lower for word in ['events', 'cloudtrail', 'audit']):
+        elif any(word in text_lower for word in ['events', 'cloudtrail', 'audit']) and 'security' not in text_lower:
             command = 'cloudtrail_events'
+        elif 'security' in text_lower and ('events' in text_lower or 'monitor' in text_lower):
+            command = 'security_events'
         elif any(word in text_lower for word in ['list', 'instances']):
             command = 'list'
         elif any(word in text_lower for word in ['status', 'health']):
@@ -178,7 +184,7 @@ JSON:"""
         confidence = 0.8 if command and instance_ids else 0.6 if command and command == 'scan_all' else 0.3 if command else 0.1
         
         # Commands that don't need instance IDs or can work with "all"
-        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status', 'schedule_patches', 'resolve_vulns'] and 'all' not in text.lower() and command != 'vulnerabilities'
+        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status', 'schedule_patches', 'resolve_vulns', 'security_events'] and 'all' not in text.lower() and command != 'vulnerabilities'
         
         return {
             "command": command,
@@ -349,7 +355,7 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
         except Exception:
             console.print("[red]✗ Could not get instance list[/red]")
             return
-    elif not instance_ids and command not in ['vuln_report', 'resolve_vulns', 'schedule_patches', 'scan_all', 'vulnerabilities', 'status', 'list']:
+    elif not instance_ids and command not in ['vuln_report', 'resolve_vulns', 'schedule_patches', 'scan_all', 'vulnerabilities', 'status', 'list', 'security_events']:
         console.print("[red]✗ No instance ID found[/red]")
         return
     
@@ -588,6 +594,76 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
                     
             except Exception as e:
                 console.print(f"[red]✗ Error listing instances: {e}[/red]")
+        
+        elif command == 'cloudtrail_events':
+            if len(instance_ids) == 1:
+                console.print(f"[bold blue]📄 Analyzing CloudTrail events for {instance_ids[0]}...[/bold blue]")
+                response = requests.post(f"{endpoint}/mcp", json={
+                    "method": "analyze_cloudtrail_events",
+                    "params": {
+                        "instance_id": instance_ids[0],
+                        "event_types": [],
+                        "time_range": time_range
+                    }
+                }, timeout=30)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if "error" in data:
+                        console.print(f"[red]✗ Error: {data['error']}[/red]")
+                    else:
+                        console.print(f"[green]✓ CloudTrail analysis complete[/green]")
+                        total_events = len(data.get('events', []))
+                        suspicious = len(data.get('suspicious_activity', []))
+                        console.print(f"  Events: {total_events}, Suspicious: {suspicious}")
+                        
+                        if suspicious > 0:
+                            console.print(f"[yellow]⚠ {suspicious} suspicious activities detected[/yellow]")
+                else:
+                    console.print(f"[red]✗ Error: {response.status_code}[/red]")
+            else:
+                console.print("[yellow]CloudTrail events requires a single instance[/yellow]")
+        
+        elif command == 'security_events':
+            if not instance_ids:
+                try:
+                    ec2 = boto3.client('ec2')
+                    response = ec2.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+                    instance_ids = []
+                    for reservation in response['Reservations']:
+                        for instance in reservation['Instances']:
+                            instance_ids.append(instance['InstanceId'])
+                except Exception:
+                    console.print("[red]✗ Could not get instance list[/red]")
+                    return
+            
+            console.print(f"[bold blue]🔒 Monitoring security events for {len(instance_ids)} instance(s)...[/bold blue]")
+            response = requests.post(f"{endpoint}/mcp", json={
+                "method": "monitor_security_events",
+                "params": {
+                    "instance_ids": instance_ids,
+                    "event_types": ["login", "privilege_escalation", "config_changes"],
+                    "time_range": time_range
+                }
+            }, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "error" in data:
+                    console.print(f"[red]✗ Error: {data['error']}[/red]")
+                else:
+                    console.print(f"[green]✓ Security monitoring complete[/green]")
+                    alerts = data.get('alerts', [])
+                    total_instances = data.get('total_instances', 0)
+                    console.print(f"  Instances monitored: {total_instances}")
+                    console.print(f"  Security alerts: {len(alerts)}")
+                    
+                    if alerts:
+                        console.print(f"[red]🚨 {len(alerts)} high-risk security alerts![/red]")
+                        for alert in alerts[:3]:
+                            console.print(f"    {alert['instance_id']}: {alert['alert_level']} risk")
+            else:
+                console.print(f"[red]✗ Error: {response.status_code}[/red]")
         
         elif command == 'resolve_vulns':
             if not instance_ids:
