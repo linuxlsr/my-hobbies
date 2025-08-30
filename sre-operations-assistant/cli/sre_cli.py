@@ -23,11 +23,20 @@ class LLMParser:
     def parse_command(self, user_input: str) -> Dict[str, Any]:
         """Parse natural language using Titan"""
         
-        # Extract instance ID first
+        # Extract instance ID or name
         instance_match = re.search(r'i-[a-f0-9]{8,17}', user_input)
         instance_id = instance_match.group(0) if instance_match else "none"
         
-        prompt = f"What is the main action in: '{user_input}'?\n\nRules:\n- If contains 'cpu', 'memory', 'metrics' → cloudwatch_metrics\n- If contains 'vuln', 'security' → vulnerabilities\n- If contains 'scan all' → scan_all\n- If contains 'list instances' → list\n\nReturn JSON:\n{{\"command\": \"cloudwatch_metrics\", \"instance_ids\": [\"{instance_id}\"], \"confidence\": 0.9}}\n\nJSON:"
+        # Look for instance names after 'for' keyword
+        if instance_id == "none" and ' for ' in user_input.lower():
+            parts = user_input.lower().split(' for ')
+            if len(parts) > 1:
+                # Take the part after 'for' and get the first word
+                after_for = parts[1].strip().split()[0]
+                if len(after_for) > 2:
+                    instance_id = after_for
+        
+        prompt = f"Parse: '{user_input}'\n\nWhat is the main request? Look for these exact words:\n- If 'cpu' or 'memory' or 'metrics' → cloudwatch_metrics\n- If 'vuln' or 'vulnerabilities' or 'security' → vulnerabilities\n- If 'status' or 'health' → status\n- If 'scan all' → scan_all\n- If 'list' or 'instances' → list\n\nReturn JSON:\n{{\"command\": \"cloudwatch_metrics\", \"instance_ids\": [], \"confidence\": 0.9}}\n\nJSON:"
 
         try:
             response = self.bedrock.invoke_model(
@@ -48,38 +57,48 @@ class LLMParser:
             # Clean and extract JSON
             content = content.replace('```json', '').replace('```', '').replace('JSON:', '').strip()
             
-            # Find JSON
-            json_start = content.find('{')
-            json_end = content.rfind('}') + 1
-            
-            if json_start >= 0 and json_end > json_start:
-                json_content = content[json_start:json_end]
-                parsed = json.loads(json_content)
-                
-                # Fix instance IDs based on command
-                command = parsed.get("command")
-                instance_ids = parsed.get("instance_ids", [])
-                
-                if command in ['list', 'scan_all']:
-                    instance_ids = []
-                elif command in ['cloudwatch_metrics', 'vulnerabilities'] and instance_id != "none":
-                    instance_ids = [instance_id]
-                elif not instance_ids and instance_id != "none":
-                    instance_ids = [instance_id]
-                
-                return {
-                    "command": parsed.get("command"),
-                    "instance_ids": instance_ids,
-                    "time_range": "24h",
-                    "confidence": parsed.get("confidence", 0.9),
-                    "original_text": user_input,
-                    "method": "llm"
-                }
+            # Handle partial JSON like "command": "status"
+            if content.startswith('"command"') and ':' in content:
+                # Extract just the command part, ignore any trailing text
+                command_part = content.split(',')[0]  # Take only first part before comma
+                command_value = command_part.split(':')[1].strip().strip('"').strip()
+                if command_value:  # Only use if we got a valid command
+                    parsed = {"command": command_value, "confidence": 0.9, "instance_ids": []}
+                else:
+                    raise ValueError(f"Empty command in partial JSON: {content}")
             else:
-                raise ValueError(f"No JSON found: {content}")
+                # Find complete JSON
+                json_start = content.find('{')
+                json_end = content.rfind('}') + 1
+                
+                if json_start >= 0 and json_end > json_start:
+                    json_content = content[json_start:json_end]
+                    parsed = json.loads(json_content)
+                else:
+                    raise ValueError(f"No JSON found: {content}")
+            
+            # Fix instance IDs based on command
+            command = parsed.get("command")
+            instance_ids = parsed.get("instance_ids", [])
+            
+            if command in ['list', 'scan_all'] or (command == 'status' and instance_id == "none"):
+                instance_ids = []
+            elif instance_id != "none":
+                instance_ids = [instance_id]
+            elif not instance_ids and instance_id != "none":
+                instance_ids = [instance_id]
+            
+            return {
+                "command": parsed.get("command"),
+                "instance_ids": instance_ids,
+                "time_range": "24h",
+                "confidence": parsed.get("confidence", 0.9),
+                "original_text": user_input,
+                "method": "llm"
+            }
                 
         except Exception as e:
-            console.print(f"[dim]LLM Error: {str(e)[:100]}[/dim]")
+            console.print(f"[dim]LLM failed, using fallback[/dim]")
             return self._fallback_parse(user_input, str(e))
     
     def _fallback_parse(self, text: str, error: str) -> Dict[str, Any]:
@@ -95,20 +114,22 @@ class LLMParser:
             command = 'scan_all'
         elif any(word in text_lower for word in ['cpu', 'mem', 'memory', 'metrics', 'performance', 'cloudwatch']) and 'all' not in text_lower:
             command = 'cloudwatch_metrics'
-        elif any(word in text_lower for word in ['vuln', 'security', 'cve']) and 'all' not in text_lower:
+        elif any(word in text_lower for word in ['vuln', 'vulns', 'vulnerabilities', 'security', 'cve']) and 'all' not in text_lower:
             command = 'vulnerabilities'
         elif any(word in text_lower for word in ['events', 'cloudtrail', 'audit']):
             command = 'cloudtrail_events'
-        elif any(word in text_lower for word in ['list', 'instances', 'show']):
+        elif any(word in text_lower for word in ['list', 'instances']):
             command = 'list'
+        elif any(word in text_lower for word in ['status', 'health']):
+            command = 'status'
         else:
             command = None
         
         # If command detected but no instance ID, suggest higher confidence for prompting
         confidence = 0.8 if command and instance_ids else 0.6 if command and command == 'scan_all' else 0.3 if command else 0.1
         
-        # scan_all and list don't need instance IDs
-        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list']
+        # scan_all, list, and status don't need instance IDs
+        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status']
         
         return {
             "command": command,
@@ -318,6 +339,58 @@ def patch_status(instance_id: str):
             console.print(f"[red]✗ Error: {response.status_code}[/red]")
     except Exception as e:
         console.print(f"[red]✗ Connection failed: {e}[/red]")
+
+
+@cli.command()
+def status():
+    """Show health status of all EC2 instances"""
+    console.print(f"[bold blue]Checking instance health...[/bold blue]")
+    
+    try:
+        ec2 = boto3.client('ec2')
+        response = ec2.describe_instances()
+        
+        running = stopped = pending = terminated = 0
+        instances = []
+        
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                state = instance['State']['Name']
+                if state == 'running':
+                    running += 1
+                elif state == 'stopped':
+                    stopped += 1
+                elif state == 'pending':
+                    pending += 1
+                elif state == 'terminated':
+                    terminated += 1
+                
+                instances.append({
+                    'id': instance['InstanceId'],
+                    'state': state,
+                    'type': instance['InstanceType']
+                })
+        
+        # Summary
+        total = len(instances)
+        console.print(f"[green]✓ Total instances: {total}[/green]")
+        console.print(f"  Running: {running}")
+        console.print(f"  Stopped: {stopped}")
+        if pending > 0:
+            console.print(f"  Pending: {pending}")
+        if terminated > 0:
+            console.print(f"  Terminated: {terminated}")
+        
+        # Health assessment
+        if running == total:
+            console.print(f"[green]🟢 All instances healthy[/green]")
+        elif running > 0:
+            console.print(f"[yellow]🟡 {running}/{total} instances running[/yellow]")
+        else:
+            console.print(f"[red]🔴 No instances running[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]✗ Error checking status: {e}[/red]")
 
 
 @cli.command()
@@ -760,10 +833,55 @@ def ask(query):
     _execute_ai_command(endpoint, parsed)
 
 
+def _resolve_instance_identifiers(identifiers: list) -> list:
+    """Resolve instance names to IDs"""
+    if not identifiers:
+        return []
+    
+    resolved_ids = []
+    try:
+        ec2 = boto3.client('ec2')
+        response = ec2.describe_instances()
+        
+        # Build name to ID mapping
+        name_to_id = {}
+        all_instances = {}
+        
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                instance_id = instance['InstanceId']
+                all_instances[instance_id] = instance
+                
+                # Get name from tags
+                for tag in instance.get('Tags', []):
+                    if tag['Key'] == 'Name':
+                        name_to_id[tag['Value']] = instance_id
+                        break
+        
+        # Resolve each identifier
+        for identifier in identifiers:
+            if identifier.startswith('i-'):
+                # Already an instance ID
+                resolved_ids.append(identifier)
+            elif identifier in name_to_id:
+                # Instance name
+                resolved_ids.append(name_to_id[identifier])
+            else:
+                # Try partial name match
+                matches = [name for name in name_to_id.keys() if identifier.lower() in name.lower()]
+                for match in matches:
+                    resolved_ids.append(name_to_id[match])
+    
+    except Exception:
+        # If resolution fails, return original identifiers
+        return identifiers
+    
+    return resolved_ids
+
 def _execute_ai_command(endpoint: str, parsed_cmd: dict):
     """Execute AI-parsed command"""
     command = parsed_cmd['command']
-    instance_ids = parsed_cmd['instance_ids']
+    instance_ids = _resolve_instance_identifiers(parsed_cmd['instance_ids'])
     time_range = parsed_cmd['time_range']
     
     if command == 'scan_all':
@@ -899,6 +1017,46 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
             ctx = click.Context(list)
             ctx.invoke(list)
         
+        elif command == 'status':
+            if instance_ids:
+                # Individual instance status
+                console.print(f"[bold blue]🏥 Checking status for {len(instance_ids)} instance(s)...[/bold blue]")
+                try:
+                    ec2 = boto3.client('ec2')
+                    response = ec2.describe_instances(InstanceIds=instance_ids)
+                    
+                    for reservation in response['Reservations']:
+                        for instance in reservation['Instances']:
+                            instance_id = instance['InstanceId']
+                            state = instance['State']['Name']
+                            instance_type = instance['InstanceType']
+                            
+                            name = 'N/A'
+                            for tag in instance.get('Tags', []):
+                                if tag['Key'] == 'Name':
+                                    name = tag['Value']
+                                    break
+                            
+                            console.print(f"[green]✓ Instance {instance_id}[/green]")
+                            console.print(f"  Name: {name}")
+                            console.print(f"  State: {state}")
+                            console.print(f"  Type: {instance_type}")
+                            
+                            if state == 'running':
+                                console.print(f"[green]🟢 Instance healthy[/green]")
+                            elif state == 'stopped':
+                                console.print(f"[yellow]🟡 Instance stopped[/yellow]")
+                            else:
+                                console.print(f"[red]🔴 Instance in {state} state[/red]")
+                            console.print()
+                except Exception as e:
+                    console.print(f"[red]✗ Error checking instance: {e}[/red]")
+            else:
+                # Overall status
+                console.print(f"[bold blue]🏥 Checking health status...[/bold blue]")
+                ctx = click.Context(status)
+                ctx.invoke(status)
+        
         else:
             console.print(f"[yellow]Command '{command}' not implemented yet[/yellow]")
     
@@ -951,6 +1109,12 @@ def chat():
                     elif parsed['command'] == 'list':
                         ctx = click.Context(list)
                         ctx.invoke(list)
+                    elif parsed['command'] == 'status':
+                        if parsed['instance_ids']:
+                            _execute_ai_command(endpoint, parsed)
+                        else:
+                            ctx = click.Context(status)
+                            ctx.invoke(status)
                     else:
                         _execute_ai_command(endpoint, parsed)
                 else:
