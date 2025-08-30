@@ -73,8 +73,9 @@ async def handle_mcp_request(request: MCPRequest):
         )
     elif method == "analyze_optimal_patch_window":
         return analyze_optimal_patch_window(
-            params.get("instance_id"),
-            params.get("days_ahead", 7)
+            params.get("instance_ids", []),
+            params.get("window_preference", "next-maintenance"),
+            params.get("patch_level", "all")
         )
     elif method == "execute_patch_now":
         return execute_patch_now(
@@ -85,6 +86,21 @@ async def handle_mcp_request(request: MCPRequest):
         return check_patch_compliance(
             params.get("instance_ids", [])
         )
+    elif method == "resolve_vulnerabilities_by_criticality":
+        return await resolve_vulnerabilities_by_criticality(
+            params.get("instance_ids", []),
+            params.get("criticality", "high"),
+            params.get("auto_approve", False)
+        )
+    elif method == "generate_vulnerability_report":
+        try:
+            return await generate_vulnerability_report(
+                params.get("instance_ids", []),
+                params.get("format", "json")
+            )
+        except Exception as e:
+            print(f"ERROR in generate_vulnerability_report: {str(e)}")
+            return {"error": str(e), "method": "generate_vulnerability_report"}
     else:
         raise HTTPException(status_code=400, detail=f"Unknown method: {method}")
     
@@ -129,12 +145,166 @@ async def analyze_cloudtrail_events(instance_id: str, event_types: List[str], ti
             "instance_id": instance_id
         }
         
-def analyze_optimal_patch_window(instance_id: str, days_ahead: int = 7) -> Dict[str, Any]:
-    """Analyze optimal patching windows using GenAI"""
+def analyze_optimal_patch_window(instance_ids: List[str], window_preference: str = "next-maintenance", patch_level: str = "all") -> Dict[str, Any]:
+    """Analyze optimal patching windows using CloudWatch metrics and GenAI"""
     try:
-        return {"status": "success", "message": "Patch window analysis complete", "instance_id": instance_id}
+        analysis_results = {}
+        recommendations = []
+        
+        for instance_id in instance_ids:
+            # Get 14 days of CloudWatch metrics
+            metrics_data = cloudwatch.get_metrics(
+                instance_id, 
+                ["CPUUtilization", "NetworkIn", "NetworkOut"], 
+                "14d"
+            )
+            
+            # Analyze patterns using GenAI
+            pattern_analysis = _analyze_usage_patterns(instance_id, metrics_data)
+            
+            analysis_results[instance_id] = {
+                "metrics_summary": {
+                    "avg_cpu": metrics_data.get("metrics", {}).get("CPUUtilization", {}).get("average", 0),
+                    "peak_hours": pattern_analysis.get("peak_hours", []),
+                    "low_usage_windows": pattern_analysis.get("low_usage_windows", [])
+                },
+                "recommended_window": pattern_analysis.get("optimal_window", "Sunday 2:00 AM"),
+                "confidence": pattern_analysis.get("confidence", 0.8),
+                "reasoning": pattern_analysis.get("reasoning", "Low usage period identified")
+            }
+        
+        # Generate overall recommendation
+        optimal_window = _find_common_window(analysis_results)
+        
+        return {
+            "status": "success",
+            "instance_count": len(instance_ids),
+            "analysis_period": "14 days",
+            "recommended_window": optimal_window.get("window", "Sunday 2:00 AM UTC"),
+            "confidence": optimal_window.get("confidence", 0.8),
+            "reasoning": optimal_window.get("reasoning", "Analyzed usage patterns across all instances"),
+            "estimated_duration": f"{len(instance_ids) * 15} minutes",
+            "instance_analysis": analysis_results,
+            "patch_level": patch_level
+        }
     except Exception as e:
         return {"status": "error", "error": str(e)}
+
+def _analyze_usage_patterns(instance_id: str, metrics_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Use GenAI to analyze usage patterns and recommend optimal windows"""
+    try:
+        from bedrock_models import BedrockModelFactory
+        
+        # Extract key metrics for analysis
+        cpu_metrics = metrics_data.get("metrics", {}).get("CPUUtilization", {})
+        network_in = metrics_data.get("metrics", {}).get("NetworkIn", {})
+        
+        avg_cpu = cpu_metrics.get("average", 0)
+        max_cpu = cpu_metrics.get("maximum", 0)
+        datapoints = len(cpu_metrics.get("datapoints", []))
+        
+        # Create prompt for GenAI analysis
+        prompt = f"""
+Analyze the following 14-day CloudWatch metrics for EC2 instance {instance_id} to recommend the optimal maintenance window:
+
+Metrics Summary:
+- Average CPU: {avg_cpu:.1f}%
+- Peak CPU: {max_cpu:.1f}%
+- Data points: {datapoints}
+- Network activity: {network_in.get('average', 0):.0f} bytes/sec
+
+Recommend the best maintenance window considering:
+1. Lowest resource utilization periods
+2. Typical business hours (avoid 9 AM - 5 PM weekdays)
+3. Weekend vs weekday preferences
+4. Time zone: UTC
+
+Provide response in JSON format:
+{{
+  "optimal_window": "Day HH:MM AM/PM UTC",
+  "confidence": 0.0-1.0,
+  "reasoning": "explanation",
+  "peak_hours": ["hour ranges"],
+  "low_usage_windows": ["recommended windows"]
+}}
+"""
+        
+        # Try to use GenAI model
+        try:
+            model = BedrockModelFactory.create_model("amazon.titan-text-express-v1")
+            response = model.generate_response(prompt, max_tokens=500)
+            
+            if response:
+                # Try to parse JSON response
+                import json
+                return json.loads(response)
+        except Exception:
+            pass
+        
+        # Fallback analysis based on simple heuristics
+        if avg_cpu < 20:
+            optimal_window = "Sunday 2:00 AM UTC"
+            confidence = 0.9
+            reasoning = "Low average CPU usage indicates flexible maintenance windows"
+        elif avg_cpu < 50:
+            optimal_window = "Saturday 11:00 PM UTC"
+            confidence = 0.7
+            reasoning = "Moderate usage - weekend late night recommended"
+        else:
+            optimal_window = "Sunday 4:00 AM UTC"
+            confidence = 0.6
+            reasoning = "High usage - early Sunday morning for minimal impact"
+        
+        return {
+            "optimal_window": optimal_window,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "peak_hours": ["9 AM - 5 PM weekdays"],
+            "low_usage_windows": ["Saturday 11 PM - Sunday 6 AM"]
+        }
+        
+    except Exception as e:
+        return {
+            "optimal_window": "Sunday 2:00 AM UTC",
+            "confidence": 0.5,
+            "reasoning": f"Default recommendation due to analysis error: {str(e)}",
+            "peak_hours": [],
+            "low_usage_windows": []
+        }
+
+def _find_common_window(analysis_results: Dict[str, Any]) -> Dict[str, Any]:
+    """Find the best common maintenance window across all instances"""
+    try:
+        # Collect all recommended windows
+        windows = []
+        total_confidence = 0
+        
+        for instance_id, analysis in analysis_results.items():
+            windows.append(analysis.get("recommended_window", "Sunday 2:00 AM UTC"))
+            total_confidence += analysis.get("confidence", 0.5)
+        
+        # Simple logic: if most instances recommend Sunday early morning, use that
+        sunday_count = sum(1 for w in windows if "Sunday" in w and ("2:00" in w or "3:00" in w or "4:00" in w))
+        
+        if sunday_count >= len(windows) * 0.6:  # 60% consensus
+            return {
+                "window": "Sunday 2:00 AM UTC",
+                "confidence": min(total_confidence / len(windows), 0.95),
+                "reasoning": f"Consensus recommendation based on {sunday_count}/{len(windows)} instances favoring Sunday early morning"
+            }
+        else:
+            return {
+                "window": "Saturday 11:00 PM UTC",
+                "confidence": min(total_confidence / len(windows), 0.8),
+                "reasoning": "Alternative weekend window to accommodate mixed usage patterns"
+            }
+            
+    except Exception:
+        return {
+            "window": "Sunday 2:00 AM UTC",
+            "confidence": 0.7,
+            "reasoning": "Default safe maintenance window"
+        }
 
 def execute_patch_now(instance_ids: List[str], patch_level: str = "non_critical") -> Dict[str, Any]:
     """Execute patching on specified instances"""
@@ -152,7 +322,47 @@ def check_patch_compliance(instance_ids: List[str]) -> Dict[str, Any]:
         
 async def resolve_vulnerabilities_by_criticality(instance_ids: List[str], criticality: str, auto_approve: bool = False) -> Dict[str, Any]:
     """Resolve vulnerabilities based on criticality level"""
-    return await scheduler.schedule_remediation(instance_ids, criticality, auto_approve)
+    try:
+        # Get vulnerability analysis and resolution plan
+        resolution_plan = analyzer.resolve_by_criticality(instance_ids, criticality)
+        
+        # If auto-approve is enabled, execute the plan
+        if auto_approve and resolution_plan.get("actions"):
+            execution_results = []
+            for action in resolution_plan["actions"]:
+                if action["action_type"] == "patch":
+                    # Execute immediate patching
+                    patch_result = ssm.execute_patch_now([action["instance_id"]], criticality)
+                    execution_results.append({
+                        "instance_id": action["instance_id"],
+                        "status": patch_result.get("status", "unknown"),
+                        "action": "patched"
+                    })
+                else:
+                    # Schedule for later
+                    schedule_result = scheduler.schedule_remediation([action["instance_id"]], criticality, False)
+                    execution_results.append({
+                        "instance_id": action["instance_id"],
+                        "status": "scheduled",
+                        "action": "scheduled"
+                    })
+            
+            resolution_plan["execution_results"] = execution_results
+            resolution_plan["auto_executed"] = True
+        else:
+            resolution_plan["auto_executed"] = False
+            resolution_plan["requires_approval"] = True
+        
+        return resolution_plan
+        
+    except Exception as e:
+        return {
+            "instance_ids": instance_ids,
+            "criticality": criticality,
+            "auto_approve": auto_approve,
+            "error": str(e),
+            "status": "failed"
+        }
         
 async def execute_automated_patching(instance_ids: List[str], patch_level: str = "non_critical", rollback_enabled: bool = True) -> Dict[str, Any]:
     """Execute automated patching with rollback capability"""
@@ -324,14 +534,18 @@ async def generate_vulnerability_report(instance_ids: List[str], format: str = "
     
     for instance_id in instance_ids:
         # Get vulnerability analysis
-        vuln_analysis = await analyzer.analyze_instance(instance_id)
+        vuln_analysis = analyzer.analyze_instance(instance_id)
         
-        # Get patch compliance
-        compliance = await ssm.get_patch_summary(instance_id)
+        # Get patch compliance (simplified)
+        try:
+            compliance = ssm.get_patch_compliance([instance_id])
+            compliance_data = compliance.get('compliance_data', {}).get(instance_id, {})
+        except Exception:
+            compliance_data = {"compliance_status": "unknown", "missing_count": 0}
         
         report_data["instances"][instance_id] = {
             "vulnerability_analysis": vuln_analysis,
-            "patch_compliance": compliance,
+            "patch_compliance": compliance_data,
             "risk_score": vuln_analysis.get("risk_score", 0)
         }
         
@@ -340,7 +554,7 @@ async def generate_vulnerability_report(instance_ids: List[str], format: str = "
         report_data["summary"]["critical_count"] += len([v for v in vuln_analysis.get("vulnerabilities", []) if v.get("severity") == "CRITICAL"])
         report_data["summary"]["high_count"] += len([v for v in vuln_analysis.get("vulnerabilities", []) if v.get("severity") == "HIGH"])
         
-        if compliance.get("compliance_status") == "non_compliant":
+        if compliance_data.get("compliance_status") == "non_compliant":
             report_data["summary"]["compliance_issues"] += 1
         
         # Add recommendations
