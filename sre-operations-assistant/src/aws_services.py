@@ -129,16 +129,19 @@ class AWSCloudWatch:
     def get_metrics(self, instance_id: str, metric_names: List[str], time_range: str) -> Dict[str, Any]:
         """Get CloudWatch metrics for EC2 instance"""
         try:
-            # Parse time range
+            # Parse time range and calculate appropriate period
             end_time = datetime.utcnow()
             if time_range.endswith('h'):
                 hours = int(time_range[:-1])
                 start_time = end_time - timedelta(hours=hours)
+                period = 300 if hours <= 6 else 3600  # 5min for <=6h, 1h otherwise
             elif time_range.endswith('d'):
                 days = int(time_range[:-1])
                 start_time = end_time - timedelta(days=days)
+                period = 3600 if days <= 2 else 86400  # 1h for <=2d, 1d otherwise
             else:
                 start_time = end_time - timedelta(hours=24)  # Default 24h
+                period = 3600
             
             metrics_data = {}
             anomalies = []
@@ -160,7 +163,7 @@ class AWSCloudWatch:
                         ],
                         StartTime=start_time,
                         EndTime=end_time,
-                        Period=3600,  # 1 hour periods
+                        Period=period,
                         Statistics=['Average', 'Maximum', 'Minimum']
                     )
                     
@@ -284,7 +287,7 @@ class AWSCloudTrail:
                 ],
                 StartTime=start_time,
                 EndTime=end_time,
-                MaxItems=50
+                MaxResults=50
             )
             
             events = response.get('Events', [])
