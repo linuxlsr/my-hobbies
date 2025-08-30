@@ -18,6 +18,7 @@ RUN pip install -r requirements.txt
 
 # Copy all source files
 COPY src/ ./src/
+COPY cli/ ./cli/
 
 # Set environment variables
 ENV PYTHONPATH=/app

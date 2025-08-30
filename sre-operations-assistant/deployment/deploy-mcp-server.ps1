@@ -14,7 +14,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-$EcrRepo = "$AccountId.dkr.ecr.$Region.amazonaws.com/$ProjectName"
+$EcrRepo = "$AccountId.dkr.ecr.$Region.amazonaws.com/sre-ops-assistant-mcp-server"
 
 # Step 1: Build Docker image
 Write-Host "📦 Building Docker image..." -ForegroundColor Cyan
@@ -48,8 +48,8 @@ if ($LASTEXITCODE -ne 0) {
 # Step 5: Update ECS service
 Write-Host "🔄 Updating ECS service..." -ForegroundColor Cyan
 aws ecs update-service `
-    --cluster "${ProjectName}-cluster" `
-    --service "${ProjectName}-mcp-server" `
+    --cluster "sre-ops-assistant-cluster" `
+    --service "sre-ops-assistant-mcp-server" `
     --force-new-deployment `
     --region $Region
 
@@ -61,15 +61,15 @@ if ($LASTEXITCODE -ne 0) {
 # Step 6: Wait for deployment
 Write-Host "⏳ Waiting for deployment to complete..." -ForegroundColor Cyan
 aws ecs wait services-stable `
-    --cluster "${ProjectName}-cluster" `
-    --services "${ProjectName}-mcp-server" `
+    --cluster "sre-ops-assistant-cluster" `
+    --services "sre-ops-assistant-mcp-server" `
     --region $Region
 
 # Step 7: Get service status
 Write-Host "📊 Getting service status..." -ForegroundColor Cyan
 $ServiceStatus = aws ecs describe-services `
-    --cluster "${ProjectName}-cluster" `
-    --services "${ProjectName}-mcp-server" `
+    --cluster "sre-ops-assistant-cluster" `
+    --services "sre-ops-assistant-mcp-server" `
     --region $Region `
     --query 'services[0].deployments[0].status' `
     --output text
@@ -79,7 +79,7 @@ if ($ServiceStatus -eq "PRIMARY") {
     
     # Get ALB endpoint
     $AlbDns = aws elbv2 describe-load-balancers `
-        --names "${ProjectName}-alb" `
+        --names "sre-ops-assistant-alb" `
         --region $Region `
         --query 'LoadBalancers[0].DNSName' `
         --output text 2>$null

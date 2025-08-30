@@ -10,12 +10,34 @@ from typing import List, Optional, Dict, Any
 import boto3
 import json
 import re
+import os
+from pathlib import Path
 try:
     import readline
 except ImportError:
     readline = None
 
 console = Console()
+
+# Configuration management
+CONFIG_DIR = Path.home() / ".sre-cli"
+CONFIG_FILE = CONFIG_DIR / "config.json"
+
+def load_config():
+    """Load CLI configuration"""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {"mcp_mode": "auto", "local_endpoint": "http://localhost:8000", "remote_endpoint": "http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com"}
+
+def save_config(config):
+    """Save CLI configuration"""
+    CONFIG_DIR.mkdir(exist_ok=True)
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f, indent=2)
 
 class LLMParser:
     """Use AWS Bedrock to parse natural language commands"""
@@ -282,12 +304,23 @@ JSON:"""
 
 # Get MCP server endpoint
 def get_mcp_endpoint():
-    # Try localhost first
-    for url in ["http://localhost:8000", "http://127.0.0.1:8000"]:
+    config = load_config()
+    mode = config.get("mcp_mode", "auto")
+    local_endpoint = config.get("local_endpoint", "http://localhost:8000")
+    remote_endpoint = config.get("remote_endpoint", "http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com")
+    
+    if mode == "local":
+        endpoints = [local_endpoint]
+    elif mode == "remote":
+        endpoints = [remote_endpoint]
+    else:  # auto mode
+        endpoints = [local_endpoint, "http://127.0.0.1:8000", remote_endpoint]
+    
+    for url in endpoints:
         try:
-            response = requests.get(f"{url}/health", timeout=2)
+            response = requests.get(f"{url}/health", timeout=5)
             if response.status_code == 200:
-                console.print(f"[green]Connected to local server: {url}[/green]")
+                console.print(f"[green]Connected to server: {url}[/green]")
                 return url
         except:
             continue
@@ -921,6 +954,78 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
         console.print(f"[red]✗ Request failed: {e}[/red]")
 
 @cli.command()
+@click.option('--mode', type=click.Choice(['local', 'remote', 'auto']), help='MCP server mode')
+@click.option('--local-url', help='Local MCP server URL')
+@click.option('--remote-url', help='Remote MCP server URL')
+def config(mode, local_url, remote_url):
+    """Configure MCP server settings"""
+    config_data = load_config()
+    
+    if not any([mode, local_url, remote_url]):
+        # Show current configuration
+        console.print("[bold blue]Current Configuration:[/bold blue]")
+        console.print(f"  Mode: [cyan]{config_data.get('mcp_mode', 'auto')}[/cyan]")
+        console.print(f"  Local endpoint: [green]{config_data.get('local_endpoint', 'http://localhost:8000')}[/green]")
+        console.print(f"  Remote endpoint: [yellow]{config_data.get('remote_endpoint', 'http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com')}[/yellow]")
+        
+        # Test current endpoint
+        endpoint = get_mcp_endpoint()
+        if endpoint:
+            console.print(f"\n[green]✓ Currently connected to: {endpoint}[/green]")
+        else:
+            console.print(f"\n[red]✗ No MCP server accessible[/red]")
+        return
+    
+    # Update configuration
+    if mode:
+        config_data['mcp_mode'] = mode
+        console.print(f"[green]✓ Mode set to: {mode}[/green]")
+    
+    if local_url:
+        config_data['local_endpoint'] = local_url
+        console.print(f"[green]✓ Local endpoint set to: {local_url}[/green]")
+    
+    if remote_url:
+        config_data['remote_endpoint'] = remote_url
+        console.print(f"[green]✓ Remote endpoint set to: {remote_url}[/green]")
+    
+    save_config(config_data)
+    
+    # Test new configuration
+    console.print("\n[cyan]Testing new configuration...[/cyan]")
+    endpoint = get_mcp_endpoint()
+    if endpoint:
+        console.print(f"[green]✓ Successfully connected to: {endpoint}[/green]")
+    else:
+        console.print(f"[red]✗ Cannot connect with new configuration[/red]")
+
+@cli.command()
+@click.argument('mode', type=click.Choice(['local', 'remote', 'auto']))
+def switch(mode):
+    """Quick switch between MCP server modes
+    
+    Examples:
+      sre switch local   # Use local MCP server only
+      sre switch remote  # Use remote MCP server only  
+      sre switch auto    # Auto-detect (local first, then remote)
+    """
+    config_data = load_config()
+    old_mode = config_data.get('mcp_mode', 'auto')
+    config_data['mcp_mode'] = mode
+    save_config(config_data)
+    
+    console.print(f"[green]✓ Switched from {old_mode} to {mode} mode[/green]")
+    
+    # Test new mode
+    console.print(f"[cyan]Testing {mode} mode...[/cyan]")
+    endpoint = get_mcp_endpoint()
+    if endpoint:
+        console.print(f"[green]✓ Connected to: {endpoint}[/green]")
+    else:
+        console.print(f"[red]✗ Cannot connect in {mode} mode[/red]")
+        console.print("[yellow]Tip: Use 'sre config' to check endpoints[/yellow]")
+
+@cli.command()
 def chat():
     """Interactive AI-powered chat mode"""
     console.print("[bold green]🤖 AI-Powered SRE Assistant[/bold green]")
@@ -949,6 +1054,42 @@ def chat():
             
             if user_input.lower() in ['exit', 'quit']:
                 break
+            elif user_input.lower().startswith('switch '):
+                # Handle switch command in chat mode
+                parts = user_input.lower().split()
+                if len(parts) == 2 and parts[1] in ['local', 'remote', 'auto']:
+                    mode = parts[1]
+                    config_data = load_config()
+                    old_mode = config_data.get('mcp_mode', 'auto')
+                    config_data['mcp_mode'] = mode
+                    save_config(config_data)
+                    
+                    console.print(f"[green]✓ Switched from {old_mode} to {mode} mode[/green]")
+                    
+                    # Test new mode and update endpoint
+                    console.print(f"[cyan]Testing {mode} mode...[/cyan]")
+                    endpoint = get_mcp_endpoint()
+                    if endpoint:
+                        console.print(f"[green]✓ Connected to: {endpoint}[/green]")
+                    else:
+                        console.print(f"[red]✗ Cannot connect in {mode} mode[/red]")
+                        console.print("[yellow]Tip: Use 'config' to check endpoints[/yellow]")
+                else:
+                    console.print("[yellow]Usage: switch [local|remote|auto][/yellow]")
+            elif user_input.lower() == 'config':
+                # Show current configuration in chat mode
+                config_data = load_config()
+                console.print("[bold blue]Current Configuration:[/bold blue]")
+                console.print(f"  Mode: [cyan]{config_data.get('mcp_mode', 'auto')}[/cyan]")
+                console.print(f"  Local endpoint: [green]{config_data.get('local_endpoint', 'http://localhost:8000')}[/green]")
+                console.print(f"  Remote endpoint: [yellow]{config_data.get('remote_endpoint', 'http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com')}[/yellow]")
+                
+                # Test current endpoint
+                endpoint = get_mcp_endpoint()
+                if endpoint:
+                    console.print(f"\n[green]✓ Currently connected to: {endpoint}[/green]")
+                else:
+                    console.print(f"\n[red]✗ No MCP server accessible[/red]")
             elif user_input.lower() == 'help':
                 console.print("""
 [bold]Natural Language Examples:[/bold]
@@ -974,6 +1115,10 @@ def chat():
 • show status
 • list instances
 • show patch window centos-db
+
+[cyan]Configuration:[/cyan]
+• switch local / switch remote / switch auto
+• config (show current settings)
 
 [cyan]Automated Remediation:[/cyan]
 • schedule patches centos-db

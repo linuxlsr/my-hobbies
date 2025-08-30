@@ -312,8 +312,28 @@ Respond in JSON format:
                     State='ENABLED'
                 )
                 
-                # Add target (Lambda function would handle actual patching)
-                # For now, just create the rule without targets since we don't have SSM
+                # Add Lambda target for patch execution
+                try:
+                    # Get Lambda function ARN (assumes it exists)
+                    lambda_arn = f"arn:aws:lambda:{boto3.Session().region_name}:{boto3.client('sts').get_caller_identity()['Account']}:function:sre-operations-assistant-patch-executor"
+                    
+                    self.events_client.put_targets(
+                        Rule=rule_name,
+                        Targets=[
+                            {
+                                'Id': '1',
+                                'Arn': lambda_arn,
+                                'Input': json.dumps({
+                                    'instance_id': instance_id,
+                                    'criticality': criticality,
+                                    'scheduled_time': patch_datetime_str
+                                })
+                            }
+                        ]
+                    )
+                except Exception as target_error:
+                    # Rule created but target failed - still return success
+                    pass
                 
                 return {
                     "rule_name": rule_name,

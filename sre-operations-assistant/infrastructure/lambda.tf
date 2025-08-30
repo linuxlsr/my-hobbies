@@ -7,8 +7,8 @@ resource "aws_lambda_function" "slack_bot" {
   timeout         = var.lambda_timeout
   memory_size     = var.lambda_memory_size
   
-  filename         = "${path.module}/../bots/slack_lambda.zip"
-  source_code_hash = filebase64sha256("${path.module}/../bots/slack_lambda.zip")
+  filename         = data.archive_file.slack_bot_zip.output_path
+  source_code_hash = data.archive_file.slack_bot_zip.output_base64sha256
 
   environment {
     variables = {
@@ -34,7 +34,8 @@ resource "aws_lambda_function" "teams_bot" {
   timeout         = var.lambda_timeout
   memory_size     = var.lambda_memory_size
   
-  filename         = "${path.module}/placeholder.zip"
+  filename         = data.archive_file.teams_bot_zip.output_path
+  source_code_hash = data.archive_file.teams_bot_zip.output_base64sha256
 
   environment {
     variables = {
@@ -60,7 +61,8 @@ resource "aws_lambda_function" "vulnerability_scanner" {
   timeout         = 300  # 5 minutes for scanning
   memory_size     = 1024
   
-  filename         = "${path.module}/placeholder.zip"
+  filename         = data.archive_file.scanner_zip.output_path
+  source_code_hash = data.archive_file.scanner_zip.output_base64sha256
 
   environment {
     variables = {
@@ -120,4 +122,44 @@ resource "aws_lambda_permission" "allow_eventbridge_vuln_scan" {
   function_name = aws_lambda_function.vulnerability_scanner.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.vulnerability_scan_schedule.arn
+}
+
+# Lambda function for patch execution
+resource "aws_lambda_function" "patch_executor" {
+  function_name    = "${var.project_name}-patch-executor"
+  role            = aws_iam_role.sre_lambda_role.arn
+  handler         = "index.handler"
+  runtime         = "python3.11"
+  timeout         = 900  # 15 minutes for patching
+  memory_size     = 512
+  
+  filename         = data.archive_file.patch_executor_zip.output_path
+  source_code_hash = data.archive_file.patch_executor_zip.output_base64sha256
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE    = aws_dynamodb_table.sre_operations.name
+      S3_BUCKET         = aws_s3_bucket.sre_artifacts.bucket
+      SLACK_SECRET_ARN  = aws_secretsmanager_secret.slack_token.arn
+    }
+  }
+
+  depends_on = [aws_cloudwatch_log_group.lambda_patch_logs]
+
+  tags = local.common_tags
+}
+
+resource "aws_cloudwatch_log_group" "lambda_patch_logs" {
+  name              = "/aws/lambda/${var.project_name}-patch-executor"
+  retention_in_days = 14
+
+  tags = local.common_tags
+}
+
+# Lambda permission for EventBridge patch rules
+resource "aws_lambda_permission" "allow_eventbridge_patch" {
+  statement_id  = "AllowExecutionFromEventBridgePatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.patch_executor.function_name
+  principal     = "events.amazonaws.com"
 }

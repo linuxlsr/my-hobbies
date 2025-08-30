@@ -118,6 +118,8 @@ async def handle_mcp_request(request: MCPRequest):
             params.get("rule_name")
         )
     else:
+        print(f"ERROR: Unknown method: {method}")
+        print(f"Available methods: get_inspector_findings, get_ec2_cloudwatch_metrics, analyze_cloudtrail_events, monitor_security_events, analyze_configuration_changes, analyze_optimal_patch_window, execute_patch_now, check_patch_compliance, resolve_vulnerabilities_by_criticality, generate_vulnerability_report, schedule_automated_patching, get_scheduled_patches, cancel_scheduled_patch")
         raise HTTPException(status_code=400, detail=f"Unknown method: {method}")
     
 def get_inspector_findings(instance_id: Optional[str], severity: str = "all") -> Dict[str, Any]:
