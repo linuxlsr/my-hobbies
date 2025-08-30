@@ -10,6 +10,10 @@ from typing import List, Optional, Dict, Any
 import boto3
 import json
 import re
+try:
+    import readline
+except ImportError:
+    readline = None
 
 console = Console()
 
@@ -27,6 +31,35 @@ class LLMParser:
         instance_match = re.search(r'i-[a-f0-9]{8,17}', user_input)
         instance_id = instance_match.group(0) if instance_match else "none"
         
+        # Extract time range from input
+        time_range = "24h"  # default
+        time_patterns = {
+            r'(\d+)\s*h(?:our)?s?': lambda m: f"{m.group(1)}h",
+            r'(\d+)\s*d(?:ay)?s?': lambda m: f"{m.group(1)}d",
+            r'(\d+)\s*w(?:eek)?s?': lambda m: f"{int(m.group(1))*7}d",
+            r'last\s+(\d+)\s+hours?': lambda m: f"{m.group(1)}h",
+            r'last\s+(\d+)\s+days?': lambda m: f"{m.group(1)}d",
+            r'yesterday': lambda m: "1d",
+            r'this\s+week': lambda m: "7d"
+        }
+        
+        for pattern, converter in time_patterns.items():
+            match = re.search(pattern, user_input.lower())
+            if match:
+                time_range = converter(match)
+                break
+        
+        # Extract severity from input
+        severity = "all"  # default
+        if 'critical' in user_input.lower():
+            severity = "critical"
+        elif 'high' in user_input.lower():
+            severity = "high"
+        elif 'medium' in user_input.lower():
+            severity = "medium"
+        elif 'low' in user_input.lower():
+            severity = "low"
+        
         # Look for instance names after 'for' keyword or as last word
         if instance_id == "none":
             if ' for ' in user_input.lower():
@@ -36,13 +69,18 @@ class LLMParser:
                     if after_for:
                         instance_id = after_for
             else:
-                # Try to get instance name as last word if no 'for'
+                # Try to extract instance name from middle of command
                 words = user_input.strip().split()
-                if len(words) >= 2:
-                    last_word = words[-1]
-                    # Check if last word looks like instance name (not a command word)
-                    if last_word not in ['status', 'vulns', 'vulnerabilities', 'cpu', 'memory', 'network', 'metrics', 'patch', 'window', 'schedule', 'events', 'security', 'cloudtrail', 'audit', 'monitor', 'all']:
-                        instance_id = last_word
+                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'all']
+                
+                # Find potential instance names (words that aren't command words or numbers)
+                for i, word in enumerate(words):
+                    if (word.lower() not in command_words and 
+                        not word.isdigit() and 
+                        len(word) > 2 and
+                        not re.match(r'^\d+[hdw]$', word)):
+                        instance_id = word
+                        break
         
         prompt = f"""Parse: '{user_input}'
 
@@ -117,7 +155,8 @@ JSON:"""
             return {
                 "command": parsed.get("command"),
                 "instance_ids": instance_ids,
-                "time_range": "24h",
+                "time_range": time_range,
+                "severity": severity,
                 "confidence": parsed.get("confidence", 0.9),
                 "original_text": user_input,
                 "method": "llm"
@@ -143,13 +182,18 @@ JSON:"""
                     if after_for and not after_for.lower() in ['all', 'everything']:
                         instance_ids = [after_for]
             else:
-                # Try to get instance name as last word if no 'for'
+                # Try to extract instance name from middle of command
                 words = text.strip().split()
-                if len(words) >= 2:
-                    last_word = words[-1]
-                    # Check if last word looks like instance name (not a command word)
-                    if last_word not in ['status', 'vulns', 'vulnerabilities', 'cpu', 'memory', 'network', 'metrics', 'patch', 'window', 'schedule', 'events', 'security', 'cloudtrail', 'audit', 'monitor', 'all']:
-                        instance_ids = [last_word]
+                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'all']
+                
+                # Find potential instance names (words that aren't command words or numbers)
+                for i, word in enumerate(words):
+                    if (word.lower() not in command_words and 
+                        not word.isdigit() and 
+                        len(word) > 2 and
+                        not re.match(r'^\d+[hdw]$', word)):
+                        instance_ids = [word]
+                        break
         
         # Simple command detection
         text_lower = text.lower()
@@ -186,10 +230,37 @@ JSON:"""
         # Commands that don't need instance IDs or can work with "all"
         needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status', 'schedule_patches', 'resolve_vulns', 'security_events'] and 'all' not in text.lower() and command != 'vulnerabilities'
         
+        # Extract time range and severity for fallback too
+        time_range = "24h"
+        severity = "all"
+        
+        time_patterns = {
+            r'(\d+)\s*h(?:our)?s?': lambda m: f"{m.group(1)}h",
+            r'(\d+)\s*d(?:ay)?s?': lambda m: f"{m.group(1)}d",
+            r'last\s+(\d+)\s+hours?': lambda m: f"{m.group(1)}h",
+            r'last\s+(\d+)\s+days?': lambda m: f"{m.group(1)}d"
+        }
+        
+        for pattern, converter in time_patterns.items():
+            match = re.search(pattern, text.lower())
+            if match:
+                time_range = converter(match)
+                break
+        
+        if 'critical' in text.lower():
+            severity = "critical"
+        elif 'high' in text.lower():
+            severity = "high"
+        elif 'medium' in text.lower():
+            severity = "medium"
+        elif 'low' in text.lower():
+            severity = "low"
+        
         return {
             "command": command,
             "instance_ids": instance_ids,
-            "time_range": "24h",
+            "time_range": time_range,
+            "severity": severity,
             "confidence": confidence,
             "original_text": text,
             "method": "fallback",
@@ -321,12 +392,13 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
     command = parsed_cmd['command']
     instance_ids = parsed_cmd['instance_ids']
     time_range = parsed_cmd['time_range']
+    severity = parsed_cmd.get('severity', 'all')
     
     if command == 'scan_all':
         console.print("[bold blue]🔍 Scanning all instances for vulnerabilities...[/bold blue]")
         response = requests.post(f"{endpoint}/mcp", json={
             "method": "get_inspector_findings",
-            "params": {"severity": "all"}
+            "params": {"severity": severity}
         }, timeout=60)
         
         if response.status_code == 200:
@@ -367,13 +439,13 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
                 console.print(f"[bold blue]🔍 Analyzing vulnerabilities for {instance_ids[0]}...[/bold blue]")
                 response = requests.post(f"{endpoint}/mcp", json={
                     "method": "get_inspector_findings",
-                    "params": {"instance_id": instance_ids[0], "severity": "all"}
+                    "params": {"instance_id": instance_ids[0], "severity": severity}
                 }, timeout=30)
             else:
                 console.print(f"[bold blue]🔍 Analyzing vulnerabilities for {len(instance_ids)} instances...[/bold blue]")
                 response = requests.post(f"{endpoint}/mcp", json={
                     "method": "get_inspector_findings",
-                    "params": {"severity": "all"}
+                    "params": {"severity": severity}
                 }, timeout=60)
             
             if response.status_code == 200:
@@ -492,14 +564,21 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
                                 max_val = metric_info.get('maximum', 0)
                                 if 'CPU' in metric_name or 'Memory' in metric_name:
                                     unit = '%'
+                                    console.print(f"  [cyan]{metric_name}[/cyan]: {avg:.2f}{unit} (avg), {max_val:.2f}{unit} (max)")
                                 elif 'Network' in metric_name:
-                                    unit = ' bytes'
-                                    avg = avg / 1024 / 1024  # Convert to MB
-                                    max_val = max_val / 1024 / 1024
-                                    unit = ' MB'
+                                    # Network metrics are in bytes, show raw values and converted
+                                    if avg > 1024 * 1024:
+                                        avg_mb = avg / 1024 / 1024
+                                        max_mb = max_val / 1024 / 1024
+                                        console.print(f"  [cyan]{metric_name}[/cyan]: {avg_mb:.2f} MB (avg), {max_mb:.2f} MB (max) | Raw: {avg:.0f} bytes")
+                                    elif avg > 1024:
+                                        avg_kb = avg / 1024
+                                        max_kb = max_val / 1024
+                                        console.print(f"  [cyan]{metric_name}[/cyan]: {avg_kb:.2f} KB (avg), {max_kb:.2f} KB (max) | Raw: {avg:.0f} bytes")
+                                    else:
+                                        console.print(f"  [cyan]{metric_name}[/cyan]: {avg:.0f} bytes (avg), {max_val:.0f} bytes (max)")
                                 else:
-                                    unit = ''
-                                console.print(f"  [cyan]{metric_name}[/cyan]: {avg:.2f}{unit} (avg), {max_val:.2f}{unit} (max)")
+                                    console.print(f"  [cyan]{metric_name}[/cyan]: {avg:.2f} (avg), {max_val:.2f} (max)")
                             else:
                                 console.print(f"  [yellow]{metric_name}[/yellow]: {metric_info.get('status', 'no data')}")
                 else:
@@ -714,6 +793,15 @@ def chat():
     console.print("Speak naturally! The AI will understand your intent.")
     console.print("Type 'exit' to quit")
     
+    # Enable command history with readline
+    if readline:
+        import os
+        histfile = os.path.join(os.path.expanduser("~"), ".sre_history")
+        try:
+            readline.read_history_file(histfile)
+        except FileNotFoundError:
+            pass
+    
     endpoint = get_mcp_endpoint()
     if not endpoint:
         console.print("[red]✗ MCP server not accessible. Exiting.[/red]")
@@ -756,6 +844,13 @@ def chat():
                 
         except KeyboardInterrupt:
             break
+    
+    # Save command history
+    if readline:
+        try:
+            readline.write_history_file(histfile)
+        except:
+            pass
     
     console.print("[bold green]Goodbye![/bold green]")
 
