@@ -15,6 +15,7 @@ from aws_services import AWSInspector, AWSCloudWatch, AWSCloudTrail
 from systems_manager import AWSSystemsManager
 from vulnerability_analyzer import VulnerabilityAnalyzer
 from patch_scheduler import PatchScheduler
+from automated_remediation import AutomatedRemediation
 
 app = FastAPI(title="SRE Operations Assistant")
 
@@ -25,6 +26,7 @@ cloudtrail = AWSCloudTrail()
 ssm = AWSSystemsManager()
 analyzer = VulnerabilityAnalyzer()
 scheduler = PatchScheduler()
+auto_remediation = AutomatedRemediation()
 
 class MCPRequest(BaseModel):
     method: str
@@ -101,6 +103,20 @@ async def handle_mcp_request(request: MCPRequest):
         except Exception as e:
             print(f"ERROR in generate_vulnerability_report: {str(e)}")
             return {"error": str(e), "method": "generate_vulnerability_report"}
+    elif method == "schedule_automated_patching":
+        return schedule_automated_patching(
+            params.get("instance_ids", []),
+            params.get("criticality", "high")
+        )
+    elif method == "get_scheduled_patches":
+        return get_scheduled_patches(
+            params.get("instance_id")
+        )
+    elif method == "cancel_scheduled_patch":
+        return cancel_scheduled_patch(
+            params.get("instance_id"),
+            params.get("rule_name")
+        )
     else:
         raise HTTPException(status_code=400, detail=f"Unknown method: {method}")
     
@@ -564,6 +580,38 @@ async def generate_vulnerability_report(instance_ids: List[str], format: str = "
     report_data["recommendations"] = recommendations
     
     return report_data
+
+def schedule_automated_patching(instance_ids: List[str], criticality: str = "high") -> Dict[str, Any]:
+    """Schedule automated patching based on AI recommendations"""
+    try:
+        return auto_remediation.schedule_automated_patching(instance_ids, criticality)
+    except Exception as e:
+        return {
+            "error": str(e),
+            "instance_ids": instance_ids,
+            "criticality": criticality
+        }
+
+def get_scheduled_patches(instance_id: Optional[str] = None) -> Dict[str, Any]:
+    """Get scheduled patch operations"""
+    try:
+        return auto_remediation.get_scheduled_patches(instance_id)
+    except Exception as e:
+        return {
+            "error": str(e),
+            "instance_id": instance_id
+        }
+
+def cancel_scheduled_patch(instance_id: str, rule_name: str) -> Dict[str, Any]:
+    """Cancel a scheduled patch operation"""
+    try:
+        return auto_remediation.cancel_scheduled_patch(instance_id, rule_name)
+    except Exception as e:
+        return {
+            "error": str(e),
+            "instance_id": instance_id,
+            "rule_name": rule_name
+        }
 
 
 if __name__ == "__main__":

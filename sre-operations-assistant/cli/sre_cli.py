@@ -71,7 +71,7 @@ class LLMParser:
             else:
                 # Try to extract instance name from middle of command
                 words = user_input.strip().split()
-                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vuln', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'report', 'generate', 'resolve', 'schedule', 'patch', 'window', 'events', 'security', 'all']
+                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vuln', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'report', 'generate', 'resolve', 'schedule', 'patch', 'patches', 'scheduled', 'window', 'events', 'security', 'all']
                 
                 # Find potential instance names (words that aren't command words or numbers)
                 for i, word in enumerate(words):
@@ -124,6 +124,8 @@ JSON:"""
                 command = 'status'
             elif 'cpu' in input_lower or 'memory' in input_lower or 'mem' in input_lower or 'network' in input_lower or 'metrics' in input_lower:
                 command = 'cloudwatch_metrics'
+            elif 'show' in input_lower and 'scheduled' in input_lower and 'patch' in input_lower:
+                command = 'show_scheduled_patches'
             elif 'schedule' in input_lower or 'patch' in input_lower or 'window' in input_lower:
                 command = 'schedule_patches'
             elif 'scan' in input_lower and 'all' in input_lower:
@@ -186,7 +188,7 @@ JSON:"""
             else:
                 # Try to extract instance name from middle of command
                 words = text.strip().split()
-                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vuln', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'report', 'generate', 'resolve', 'schedule', 'patch', 'window', 'events', 'security', 'all']
+                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vuln', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'report', 'generate', 'resolve', 'schedule', 'patch', 'patches', 'scheduled', 'window', 'events', 'security', 'all']
                 
                 # Find potential instance names (words that aren't command words or numbers)
                 for i, word in enumerate(words):
@@ -221,6 +223,12 @@ JSON:"""
             command = 'cloudtrail_events'
         elif 'security' in text_lower and ('events' in text_lower or 'monitor' in text_lower):
             command = 'security_events'
+        elif any(phrase in text_lower for phrase in ['scheduled patches', 'patch schedule', 'show schedule']) or ('show' in text_lower and 'scheduled' in text_lower):
+            command = 'show_scheduled_patches'
+        elif any(phrase in text_lower for phrase in ['schedule patch', 'auto patch', 'schedule remediation']):
+            command = 'schedule_patches'
+        elif any(phrase in text_lower for phrase in ['cancel patch', 'cancel schedule']):
+            command = 'cancel_patch'
         elif any(word in text_lower for word in ['list', 'instances']):
             command = 'list'
         elif any(word in text_lower for word in ['status', 'health']):
@@ -232,7 +240,7 @@ JSON:"""
         confidence = 0.8 if command and instance_ids else 0.6 if command and command == 'scan_all' else 0.3 if command else 0.1
         
         # Commands that don't need instance IDs or can work with "all"
-        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status', 'schedule_patches', 'resolve_vulns', 'security_events', 'vuln_report'] and 'all' not in text.lower() and command != 'vulnerabilities'
+        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status', 'schedule_patches', 'resolve_vulns', 'security_events', 'vuln_report', 'show_scheduled_patches', 'cancel_patch'] and 'all' not in text.lower() and command != 'vulnerabilities'
         
         # Extract time range and severity for fallback too
         time_range = "24h"
@@ -301,6 +309,8 @@ def ask(query):
       sre ask check vulnerabilities for i-00f20fbd7c0075d1d
       sre ask show me cpu performance for i-123 over the last hour
       sre ask scan all instances for vulnerabilities
+      sre ask schedule patches centos-db
+      sre ask show scheduled patches
     """
     if not query:
         console.print("[yellow]Usage: sre ask <your question>[/yellow]")
@@ -433,7 +443,7 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
         except Exception:
             console.print("[red]✗ Could not get instance list[/red]")
             return
-    elif not instance_ids and command not in ['vuln_report', 'resolve_vulns', 'schedule_patches', 'scan_all', 'vulnerabilities', 'status', 'list', 'security_events']:
+    elif not instance_ids and command not in ['vuln_report', 'resolve_vulns', 'schedule_patches', 'scan_all', 'vulnerabilities', 'status', 'list', 'security_events', 'show_scheduled_patches', 'cancel_patch']:
         console.print("[red]✗ No instance ID found[/red]")
         return
     
@@ -475,62 +485,60 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
                     console.print("[red]✗ Could not get instance list[/red]")
                     return
             
-            console.print(f"[bold blue]📅 AI-Analyzing patch windows for {len(instance_ids)} instance(s)...[/bold blue]")
-            console.print(f"[dim]Analyzing 14 days of CloudWatch metrics per instance...[/dim]")
+            console.print(f"[bold blue]🤖 AI-Powered Automated Patch Scheduling for {len(instance_ids)} instance(s)...[/bold blue]")
+            console.print(f"[dim]Analyzing vulnerabilities, telemetry, and optimal windows...[/dim]")
             response = requests.post(f"{endpoint}/mcp", json={
-                "method": "analyze_optimal_patch_window",
+                "method": "schedule_automated_patching",
                 "params": {
                     "instance_ids": instance_ids,
-                    "window_preference": "next-maintenance",
-                    "patch_level": "all"
+                    "criticality": severity if severity != 'all' else 'high'
                 }
-            }, timeout=60)
+            }, timeout=120)
             
             if response.status_code == 200:
                 data = response.json()
                 if "error" in data:
                     console.print(f"[red]✗ Error: {data['error']}[/red]")
                 else:
-                    console.print(f"[green]✓ AI-Powered Patch Window Analysis Complete[/green]")
+                    console.print(f"[green]✓ Automated Patch Scheduling Complete[/green]")
                     
-                    # Main recommendation
-                    window = data.get('recommended_window', 'Unknown')
-                    confidence = data.get('confidence', 0)
-                    reasoning = data.get('reasoning', 'No reasoning provided')
-                    duration = data.get('estimated_duration', 'Unknown')
+                    plan_id = data.get('plan_id', 'Unknown')
+                    schedules = data.get('instance_schedules', [])
                     
-                    console.print(f"\n[cyan]🤖 AI Recommendation:[/cyan]")
-                    console.print(f"  Optimal Window: [bold]{window}[/bold]")
-                    console.print(f"  Confidence: {confidence:.1%}")
-                    console.print(f"  Estimated Duration: {duration}")
-                    console.print(f"  Analysis Period: {data.get('analysis_period', '14 days')}")
+                    console.print(f"\n[cyan]📅 Remediation Plan: {plan_id}[/cyan]")
+                    console.print(f"  Total instances: {data.get('total_instances', 0)}")
+                    console.print(f"  Criticality level: {data.get('criticality', 'high')}")
                     
-                    console.print(f"\n[yellow]Reasoning:[/yellow]")
-                    console.print(f"  {reasoning}")
-                    
-                    # Per-instance breakdown
-                    instance_analysis = data.get('instance_analysis', {})
-                    if instance_analysis:
-                        console.print(f"\n[bold]Per-Instance Analysis:[/bold]")
-                        count = 0
-                        for instance_id, analysis in instance_analysis.items():
-                            if count >= 3:  # Show first 3
-                                break
-                            metrics = analysis.get('metrics_summary', {})
-                            avg_cpu = metrics.get('avg_cpu', 0)
-                            recommended = analysis.get('recommended_window', 'Unknown')
-                            
-                            cpu_color = "red" if avg_cpu > 70 else "yellow" if avg_cpu > 40 else "green"
-                            console.print(f"  [{cpu_color}]{instance_id}[/{cpu_color}]: {avg_cpu:.1f}% avg CPU → {recommended}")
-                            count += 1
+                    # Show first few scheduled instances
+                    console.print(f"\n[bold]Scheduled Patches:[/bold]")
+                    for i, schedule in enumerate(schedules[:3]):
+                        instance_id = schedule.get('instance_id', 'Unknown')
+                        vuln_count = schedule.get('vulnerability_count', 0)
+                        risk_score = schedule.get('risk_score', 0)
+                        optimal_window = schedule.get('optimal_window', {})
+                        window_time = optimal_window.get('recommended_datetime', 'Unknown')
+                        confidence = optimal_window.get('confidence_score', 0)
+                        duration = schedule.get('estimated_duration', {})
+                        total_minutes = duration.get('total_minutes', 0)
                         
-                        if len(instance_analysis) > 3:
-                            console.print(f"  ... and {len(instance_analysis) - 3} more instances analyzed")
+                        risk_color = "red" if risk_score >= 80 else "yellow" if risk_score >= 60 else "green"
+                        console.print(f"  [{risk_color}]{instance_id}[/{risk_color}]:")
+                        console.print(f"    Vulnerabilities: {vuln_count} (risk: {risk_score:.1f})")
+                        console.print(f"    Scheduled: {window_time} (confidence: {confidence:.1%})")
+                        console.print(f"    Duration: {total_minutes} minutes")
+                        
+                        reasoning = optimal_window.get('reasoning', 'AI-optimized window')
+                        console.print(f"    Reason: {reasoning}")
+                        console.print()
                     
-                    console.print(f"\n[blue]📅 Next Steps:[/blue]")
-                    console.print(f"  1. Review the recommended window: {window}")
-                    console.print(f"  2. Use 'sre bulk-resolve --criticality critical' to execute patches")
-                    console.print(f"  3. Schedule automated execution for the optimal window")
+                    if len(schedules) > 3:
+                        console.print(f"  ... and {len(schedules) - 3} more instances scheduled")
+                    
+                    console.print(f"\n[blue]🚀 Next Steps:[/blue]")
+                    console.print(f"  1. Patches are scheduled based on AI analysis")
+                    console.print(f"  2. Use 'show scheduled patches' to view all schedules")
+                    console.print(f"  3. EventBridge rules will trigger patches automatically")
+                    console.print(f"  4. Pre-patch checks and rollback plans are prepared")
             else:
                 console.print(f"[red]✗ Error: {response.status_code}[/red]")
         
@@ -838,6 +846,74 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
             else:
                 console.print(f"[red]✗ Error: {response.status_code}[/red]")
         
+        elif command == 'show_scheduled_patches':
+            console.print(f"[bold blue]📅 Getting scheduled patches...[/bold blue]")
+            response = requests.post(f"{endpoint}/mcp", json={
+                "method": "get_scheduled_patches",
+                "params": {
+                    "instance_id": instance_id if instance_ids else None
+                }
+            }, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "error" in data:
+                    console.print(f"[red]✗ Error: {data['error']}[/red]")
+                else:
+                    patches = data.get('scheduled_patches', [])
+                    console.print(f"[green]✓ Found {len(patches)} scheduled patches[/green]")
+                    
+                    if patches:
+                        table = Table(title="Scheduled Patches")
+                        table.add_column("Instance ID", style="cyan")
+                        table.add_column("Scheduled Time", style="yellow")
+                        table.add_column("Criticality", style="red")
+                        table.add_column("Duration", style="blue")
+                        table.add_column("Status", style="green")
+                        
+                        for patch in patches:
+                            table.add_row(
+                                patch.get('instance_id', 'N/A'),
+                                patch.get('scheduled_time', 'N/A'),
+                                patch.get('criticality', 'N/A'),
+                                patch.get('estimated_duration', 'N/A'),
+                                patch.get('status', 'N/A')
+                            )
+                        
+                        console.print(table)
+                    else:
+                        console.print("[yellow]No scheduled patches found[/yellow]")
+            else:
+                console.print(f"[red]✗ Error: {response.status_code}[/red]")
+        
+        elif command == 'cancel_patch':
+            if not instance_ids:
+                console.print("[red]✗ Instance ID required to cancel patch[/red]")
+                return
+            
+            # For demo, use a mock rule name
+            rule_name = f"patch-{instance_ids[0]}-high-202401150200"
+            
+            console.print(f"[bold blue]❌ Cancelling scheduled patch for {instance_ids[0]}...[/bold blue]")
+            response = requests.post(f"{endpoint}/mcp", json={
+                "method": "cancel_scheduled_patch",
+                "params": {
+                    "instance_id": instance_ids[0],
+                    "rule_name": rule_name
+                }
+            }, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "error" in data:
+                    console.print(f"[red]✗ Error: {data['error']}[/red]")
+                else:
+                    console.print(f"[green]✓ Patch cancelled for {instance_ids[0]}[/green]")
+                    console.print(f"  Rule: {data.get('rule_name', 'N/A')}")
+                    console.print(f"  Status: {data.get('status', 'N/A')}")
+            else:
+                console.print(f"[red]✗ Error: {response.status_code}[/red]")
+        
         else:
             console.print(f"[yellow]Command '{command}' not implemented yet[/yellow]")
     
@@ -898,7 +974,13 @@ def chat():
 • show status
 • list instances
 • show patch window centos-db
+
+[cyan]Automated Remediation:[/cyan]
 • schedule patches centos-db
+• schedule automated patching for all instances
+• show scheduled patches
+• show patch schedule for centos-db
+• cancel patch centos-db
 
 [cyan]Time & Severity Options:[/cyan]
 • last 2 hours, yesterday, last 3 days
