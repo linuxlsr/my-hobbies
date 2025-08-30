@@ -301,9 +301,11 @@ def ask(query):
     if not query:
         console.print("[yellow]Usage: sre ask <your question>[/yellow]")
         console.print("Examples:")
-        console.print("  sre ask check vulnerabilities for i-00f20fbd7c0075d1d")
-        console.print("  sre ask cpu metrics i-123 last 2 hours")
-        console.print("  sre ask scan all instances")
+        console.print("  sre ask show vulns centos-db")
+        console.print("  sre ask show cpu centos-db last 2 hours")
+        console.print("  sre ask scan all critical")
+        console.print("  sre ask show security events")
+        console.print("  sre ask schedule patches centos-db")
         return
     
     query_text = ' '.join(query)
@@ -818,11 +820,33 @@ def chat():
             elif user_input.lower() == 'help':
                 console.print("""
 [bold]Natural Language Examples:[/bold]
-• Check vulnerabilities on i-00f20fbd7c0075d1d
-• Show me CPU performance for i-123 over the last 2 hours
-• What security events happened on i-456 yesterday?
-• Scan all instances for vulnerabilities
-• Schedule patches for i-00f20fbd7c0075d1d
+
+[cyan]Vulnerabilities:[/cyan]
+• show vulns centos-db
+• show critical vulnerabilities
+• scan all instances
+• resolve vulnerabilities centos-db
+
+[cyan]Metrics & Monitoring:[/cyan]
+• show cpu centos-db last 2 hours
+• show network 3mn-ami-10 last 3 days
+• show memory centos-db
+• show metrics centos-db yesterday
+
+[cyan]Security & Events:[/cyan]
+• show security events
+• show events centos-db last week
+• show cloudtrail centos-db
+
+[cyan]System Management:[/cyan]
+• show status
+• list instances
+• show patch window centos-db
+• schedule patches centos-db
+
+[cyan]Time & Severity Options:[/cyan]
+• last 2 hours, yesterday, last 3 days
+• critical, high, medium, low severity
                 """)
             else:
                 console.print(f"[cyan]🤖 AI Processing...[/cyan]")
