@@ -1,15 +1,125 @@
 #!/usr/bin/env python3
-"""MCP-Powered CLI for SRE Operations - Updated with Core Functions"""
+"""AI-Powered SRE Operations CLI - Consolidated with LLM Natural Language Processing"""
 
 import click
 import asyncio
 import requests
 from rich.console import Console
 from rich.table import Table
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import boto3
+import json
+import re
 
 console = Console()
+
+class LLMParser:
+    """Use AWS Bedrock to parse natural language commands"""
+    
+    def __init__(self):
+        self.bedrock = boto3.client('bedrock-runtime', region_name='us-west-2')
+        self.model_id = "amazon.titan-text-express-v1"
+    
+    def parse_command(self, user_input: str) -> Dict[str, Any]:
+        """Parse natural language using Titan"""
+        
+        # Extract instance ID first
+        instance_match = re.search(r'i-[a-f0-9]{8,17}', user_input)
+        instance_id = instance_match.group(0) if instance_match else "none"
+        
+        prompt = f"What is the main action in: '{user_input}'?\n\nRules:\n- If contains 'cpu', 'memory', 'metrics' → cloudwatch_metrics\n- If contains 'vuln', 'security' → vulnerabilities\n- If contains 'scan all' → scan_all\n- If contains 'list instances' → list\n\nReturn JSON:\n{{\"command\": \"cloudwatch_metrics\", \"instance_ids\": [\"{instance_id}\"], \"confidence\": 0.9}}\n\nJSON:"
+
+        try:
+            response = self.bedrock.invoke_model(
+                modelId=self.model_id,
+                body=json.dumps({
+                    "inputText": prompt,
+                    "textGenerationConfig": {
+                        "maxTokenCount": 100,
+                        "temperature": 0.0,
+                        "topP": 0.1
+                    }
+                })
+            )
+            
+            result = json.loads(response['body'].read())
+            content = result['results'][0]['outputText'].strip()
+            
+            # Clean and extract JSON
+            content = content.replace('```json', '').replace('```', '').replace('JSON:', '').strip()
+            
+            # Find JSON
+            json_start = content.find('{')
+            json_end = content.rfind('}') + 1
+            
+            if json_start >= 0 and json_end > json_start:
+                json_content = content[json_start:json_end]
+                parsed = json.loads(json_content)
+                
+                # Fix instance IDs based on command
+                command = parsed.get("command")
+                instance_ids = parsed.get("instance_ids", [])
+                
+                if command in ['list', 'scan_all']:
+                    instance_ids = []
+                elif command in ['cloudwatch_metrics', 'vulnerabilities'] and instance_id != "none":
+                    instance_ids = [instance_id]
+                elif not instance_ids and instance_id != "none":
+                    instance_ids = [instance_id]
+                
+                return {
+                    "command": parsed.get("command"),
+                    "instance_ids": instance_ids,
+                    "time_range": "24h",
+                    "confidence": parsed.get("confidence", 0.9),
+                    "original_text": user_input,
+                    "method": "llm"
+                }
+            else:
+                raise ValueError(f"No JSON found: {content}")
+                
+        except Exception as e:
+            console.print(f"[dim]LLM Error: {str(e)[:100]}[/dim]")
+            return self._fallback_parse(user_input, str(e))
+    
+    def _fallback_parse(self, text: str, error: str) -> Dict[str, Any]:
+        """Fallback regex parsing if LLM fails"""
+        
+        # Basic regex fallback
+        instance_match = re.search(r'i-[a-f0-9]{8,17}', text)
+        instance_ids = [instance_match.group(0)] if instance_match else []
+        
+        # Simple command detection
+        text_lower = text.lower()
+        if any(phrase in text_lower for phrase in ['scan all', 'scan everything', 'check all']):
+            command = 'scan_all'
+        elif any(word in text_lower for word in ['cpu', 'mem', 'memory', 'metrics', 'performance', 'cloudwatch']) and 'all' not in text_lower:
+            command = 'cloudwatch_metrics'
+        elif any(word in text_lower for word in ['vuln', 'security', 'cve']) and 'all' not in text_lower:
+            command = 'vulnerabilities'
+        elif any(word in text_lower for word in ['events', 'cloudtrail', 'audit']):
+            command = 'cloudtrail_events'
+        elif any(word in text_lower for word in ['list', 'instances', 'show']):
+            command = 'list'
+        else:
+            command = None
+        
+        # If command detected but no instance ID, suggest higher confidence for prompting
+        confidence = 0.8 if command and instance_ids else 0.6 if command and command == 'scan_all' else 0.3 if command else 0.1
+        
+        # scan_all and list don't need instance IDs
+        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list']
+        
+        return {
+            "command": command,
+            "instance_ids": instance_ids,
+            "time_range": "24h",
+            "confidence": confidence,
+            "original_text": text,
+            "method": "fallback",
+            "llm_error": error,
+            "needs_instance_id": needs_instance_id
+        }
 
 # Get MCP server endpoint
 def get_mcp_endpoint():
@@ -211,6 +321,50 @@ def patch_status(instance_id: str):
 
 
 @cli.command()
+def list():
+    """List all EC2 instances in the region"""
+    console.print(f"[bold blue]Listing EC2 instances...[/bold blue]")
+    
+    try:
+        ec2 = boto3.client('ec2')
+        response = ec2.describe_instances()
+        
+        instances = []
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                name = 'N/A'
+                for tag in instance.get('Tags', []):
+                    if tag['Key'] == 'Name':
+                        name = tag['Value']
+                        break
+                
+                instances.append({
+                    'id': instance['InstanceId'],
+                    'name': name,
+                    'state': instance['State']['Name'],
+                    'type': instance['InstanceType']
+                })
+        
+        if instances:
+            table = Table(title="EC2 Instances")
+            table.add_column("Instance ID", style="cyan")
+            table.add_column("Name", style="green")
+            table.add_column("State", style="yellow")
+            table.add_column("Type", style="blue")
+            
+            for inst in instances:
+                table.add_row(inst['id'], inst['name'], inst['state'], inst['type'])
+            
+            console.print(table)
+            console.print(f"[green]✓ Found {len(instances)} instances[/green]")
+        else:
+            console.print("[yellow]No instances found[/yellow]")
+            
+    except Exception as e:
+        console.print(f"[red]✗ Error listing instances: {e}[/red]")
+
+
+@cli.command()
 @click.option('--severity', '-s', default='all', help='Vulnerability severity filter')
 def scan_all(severity: str):
     """Scan all EC2 instances in the region for vulnerabilities"""
@@ -242,7 +396,7 @@ def scan_all(severity: str):
 
 @cli.command()
 @click.option('--instance-id', '-i', required=True, help='EC2 instance ID')
-@click.option('--metrics', '-m', default='CPUUtilization,NetworkIn,NetworkOut', help='Comma-separated metric names')
+@click.option('--metrics', '-m', default='CPUUtilization,MemoryUtilization,NetworkIn,NetworkOut', help='Comma-separated metric names')
 @click.option('--time-range', '-t', default='24h', help='Time range (e.g., 24h, 7d)')
 def cloudwatch_metrics(instance_id: str, metrics: str, time_range: str):
     """Get CloudWatch metrics for EC2 instance"""
@@ -435,6 +589,41 @@ def config_changes(instance_ids: str, time_range: str):
 
 
 @cli.command()
+def interactive():
+    """Legacy interactive mode (use 'chat' for AI-powered mode)"""
+    console.print("[yellow]Note: Use 'sre chat' for AI-powered natural language mode[/yellow]")
+    console.print("[bold green]SRE Assistant Interactive Mode[/bold green]")
+    console.print("Type 'exit' to quit, 'help' for commands")
+    
+    endpoint = get_mcp_endpoint()
+    if not endpoint:
+        console.print("[red]✗ MCP server not accessible. Exiting.[/red]")
+        return
+    
+    while True:
+        try:
+            user_input = console.input("[bold cyan]sre> [/bold cyan]")
+            
+            if user_input.lower() in ['exit', 'quit']:
+                break
+            elif user_input.lower() == 'help':
+                console.print("""
+Available commands:
+- analyze vulnerabilities for <instance-id>
+- scan all instances
+- get cloudwatch metrics for <instance-id>
+- analyze cloudtrail events for <instance-id>
+                """)
+            else:
+                console.print(f"[yellow]Try: sre ask {user_input}[/yellow]")
+                
+        except KeyboardInterrupt:
+            break
+    
+    console.print("[bold green]Goodbye![/bold green]")
+
+
+@cli.command()
 def test_core_functions():
     """Test all core MCP functions with sample data"""
     console.print("[bold blue]Testing Core MCP Functions[/bold blue]")
@@ -527,183 +716,246 @@ def test_core_functions():
 
 
 @cli.command()
-def interactive():
-    """Start interactive MCP-powered mode"""
-    console.print("[bold green]SRE Assistant Interactive Mode[/bold green]")
-    console.print("Type 'exit' to quit, 'help' for commands")
+@click.argument('query', nargs=-1)
+def ask(query):
+    """Ask anything in natural language using AI!
     
-    # Get endpoint once at startup
+    Examples:
+      sre ask check vulnerabilities for i-00f20fbd7c0075d1d
+      sre ask show me cpu performance for i-123 over the last hour
+      sre ask scan all instances for vulnerabilities
+    """
+    if not query:
+        console.print("[yellow]Usage: sre ask <your question>[/yellow]")
+        console.print("Examples:")
+        console.print("  sre ask check vulnerabilities for i-00f20fbd7c0075d1d")
+        console.print("  sre ask cpu metrics i-123 last 2 hours")
+        console.print("  sre ask scan all instances")
+        return
+    
+    query_text = ' '.join(query)
+    console.print(f"[cyan]🤖 AI Processing: {query_text}[/cyan]")
+    
+    # Parse with LLM
+    parser = LLMParser()
+    parsed = parser.parse_command(query_text)
+    
+    console.print(f"[dim]Understood: {parsed['command']} for {parsed['instance_ids']} ({parsed['confidence']:.1f} confidence)[/dim]")
+    
+    if parsed['confidence'] < 0.5:
+        console.print("[yellow]⚠ Low confidence in understanding. Please be more specific.[/yellow]")
+        return
+    
+    if parsed.get('needs_instance_id'):
+        console.print("[yellow]⚠ I understand you want to check vulnerabilities, but I need an instance ID.[/yellow]")
+        console.print("Try: 'check vulnerabilities for i-00f20fbd7c0075d1d'")
+        return
+    
+    # Get endpoint and execute
+    endpoint = get_mcp_endpoint()
+    if not endpoint:
+        console.print("[red]✗ MCP server not accessible[/red]")
+        return
+    
+    _execute_ai_command(endpoint, parsed)
+
+
+def _execute_ai_command(endpoint: str, parsed_cmd: dict):
+    """Execute AI-parsed command"""
+    command = parsed_cmd['command']
+    instance_ids = parsed_cmd['instance_ids']
+    time_range = parsed_cmd['time_range']
+    
+    if command == 'scan_all':
+        console.print("[bold blue]🔍 Scanning all instances for vulnerabilities...[/bold blue]")
+        response = requests.post(f"{endpoint}/mcp", json={
+            "method": "get_inspector_findings",
+            "params": {"severity": "all"}
+        }, timeout=60)
+        
+        if response.status_code == 200:
+            data = response.json()
+            console.print(f"[green]✓ Found {len(data.get('findings', []))} total vulnerabilities[/green]")
+            console.print(f"Summary: {data.get('summary', 'No summary')}")
+        else:
+            console.print(f"[red]✗ Error: {response.status_code}[/red]")
+        return
+    
+    if not instance_ids:
+        console.print("[red]✗ No instance ID found[/red]")
+        return
+    
+    instance_id = instance_ids[0]  # Use first instance
+    
+    try:
+        if command == 'vulnerabilities':
+            console.print(f"[bold blue]🔍 Analyzing vulnerabilities for {instance_id}...[/bold blue]")
+            response = requests.post(f"{endpoint}/mcp", json={
+                "method": "get_inspector_findings",
+                "params": {"instance_id": instance_id, "severity": "all"}
+            }, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                console.print(f"[green]✓ Found {len(data.get('findings', []))} vulnerabilities[/green]")
+                console.print(f"Summary: {data.get('summary', 'No summary')}")
+            else:
+                console.print(f"[red]✗ Error: {response.status_code}[/red]")
+        
+        elif command == 'cloudwatch_metrics':
+            # Determine which metrics to request based on original text
+            text_lower = parsed_cmd['original_text'].lower()
+            if 'cpu' in text_lower and 'mem' not in text_lower and 'network' not in text_lower:
+                metric_names = ["CPUUtilization"]
+            elif 'mem' in text_lower and 'cpu' not in text_lower and 'network' not in text_lower:
+                metric_names = ["MemoryUtilization"]
+            elif 'network' in text_lower and 'cpu' not in text_lower and 'mem' not in text_lower:
+                metric_names = ["NetworkIn", "NetworkOut"]
+            else:
+                metric_names = ["CPUUtilization", "MemoryUtilization", "NetworkIn", "NetworkOut"]
+            
+            console.print(f"[bold blue]📊 Getting metrics for {instance_id} ({time_range})...[/bold blue]")
+            response = requests.post(f"{endpoint}/mcp", json={
+                "method": "get_ec2_cloudwatch_metrics",
+                "params": {
+                    "instance_id": instance_id,
+                    "metric_names": metric_names,
+                    "time_range": time_range
+                }
+            }, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "error" in data:
+                    console.print(f"[red]✗ Error: {data['error']}[/red]")
+                else:
+                    console.print(f"[green]✓ Metrics for {instance_id} ({instance_id[-4:]}) - {time_range}[/green]")
+                    metrics_data = data.get('metrics', {})
+                    for metric_name, metric_info in metrics_data.items():
+                        if isinstance(metric_info, dict):
+                            if 'status' in metric_info:
+                                status = metric_info['status']
+                                if status == 'no_data':
+                                    console.print(f"  [yellow]{metric_name}[/yellow]: No data available")
+                                elif status == 'insufficient_data':
+                                    console.print(f"  [yellow]{metric_name}[/yellow]: Insufficient data")
+                                elif status == 'error':
+                                    console.print(f"  [red]{metric_name}[/red]: Error - {metric_info.get('error', 'Unknown error')}")
+                            elif 'average' in metric_info:
+                                avg = metric_info['average']
+                                max_val = metric_info.get('maximum', 0)
+                                min_val = metric_info.get('minimum', 0)
+                                trend = metric_info.get('trend', 'stable')
+                                datapoints = len(metric_info.get('datapoints', []))
+                                
+                                # Format units based on metric type
+                                if 'CPU' in metric_name:
+                                    unit = '%'
+                                elif 'Network' in metric_name:
+                                    unit = 'bytes'
+                                elif 'Disk' in metric_name:
+                                    unit = 'ops'
+                                else:
+                                    unit = ''
+                                
+                                console.print(f"  [cyan]{metric_name}[/cyan]: {avg:.2f}{unit} (avg)")
+                                console.print(f"    Range: {min_val:.2f} - {max_val:.2f}{unit}, Trend: {trend}")
+                                console.print(f"    Datapoints: {datapoints}")
+                    
+                    # Show anomalies if any
+                    anomalies = data.get('anomalies', [])
+                    if anomalies:
+                        console.print(f"\n  [red]⚠ {len(anomalies)} anomalies detected:[/red]")
+                        for anomaly in anomalies[:3]:  # Show first 3
+                            console.print(f"    {anomaly['metric']}: {anomaly['value']:.2f} at {anomaly['timestamp'][:19]}")
+            else:
+                console.print(f"[red]✗ Error: {response.status_code}[/red]")
+        
+        elif command == 'cloudtrail_events':
+            console.print(f"[bold blue]📄 Analyzing CloudTrail events for {instance_id} ({time_range})...[/bold blue]")
+            response = requests.post(f"{endpoint}/mcp", json={
+                "method": "analyze_cloudtrail_events",
+                "params": {
+                    "instance_id": instance_id,
+                    "event_types": [],
+                    "time_range": time_range
+                }
+            }, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "error" in data:
+                    console.print(f"[red]✗ Error: {data['error']}[/red]")
+                else:
+                    console.print(f"[green]✓ CloudTrail analysis complete[/green]")
+                    total_events = len(data.get('events', []))
+                    suspicious = len(data.get('suspicious_activity', []))
+                    console.print(f"  Events: {total_events}, Suspicious: {suspicious}")
+            else:
+                console.print(f"[red]✗ Error: {response.status_code}[/red]")
+        
+        elif command == 'list':
+            console.print(f"[bold blue]📋 Listing instances...[/bold blue]")
+            ctx = click.Context(list)
+            ctx.invoke(list)
+        
+        else:
+            console.print(f"[yellow]Command '{command}' not implemented yet[/yellow]")
+    
+    except Exception as e:
+        console.print(f"[red]✗ Request failed: {e}[/red]")
+
+
+@cli.command()
+def chat():
+    """Interactive AI-powered chat mode"""
+    console.print("[bold green]🤖 AI-Powered SRE Assistant[/bold green]")
+    console.print("Speak naturally! The AI will understand your intent.")
+    console.print("Type 'exit' to quit")
+    
     endpoint = get_mcp_endpoint()
     if not endpoint:
         console.print("[red]✗ MCP server not accessible. Exiting.[/red]")
         return
     
+    parser = LLMParser()
+    
     while True:
         try:
-            user_input = console.input("\n[bold cyan]sre>[/bold cyan] ")
+            user_input = console.input("[bold cyan]sre> [/bold cyan]")
             
             if user_input.lower() in ['exit', 'quit']:
                 break
             elif user_input.lower() == 'help':
                 console.print("""
-Available commands:
-- analyze vulnerabilities for <instance-id>
-- scan all instances
-- find patch windows for <instance-id>
-- schedule patches for <criticality>
-- check security events for <time-range>
-- get cloudwatch metrics for <instance-id>
-- analyze cloudtrail events for <instance-id>
-- check config changes for <instance-id>
+[bold]Natural Language Examples:[/bold]
+• Check vulnerabilities on i-00f20fbd7c0075d1d
+• Show me CPU performance for i-123 over the last 2 hours
+• What security events happened on i-456 yesterday?
+• Scan all instances for vulnerabilities
+• Analyze network traffic for i-789 this week
                 """)
             else:
-                console.print(f"[yellow]Processing: {user_input}[/yellow]")
+                console.print(f"[cyan]🤖 AI Processing...[/cyan]")
+                parsed = parser.parse_command(user_input)
                 
-                # Parse natural language input
-                if "vulnerabilities" in user_input.lower() and "for" in user_input.lower():
-                    # Extract instance ID
-                    parts = user_input.split()
-                    instance_id = None
-                    for part in parts:
-                        if part.startswith('i-'):
-                            instance_id = part
-                            break
-                    
-                    if instance_id:
-                        try:
-                            response = requests.post(f"{endpoint}/mcp", json={
-                                "method": "get_inspector_findings",
-                                "params": {"instance_id": instance_id, "severity": "all"}
-                            }, timeout=30)
-                            
-                            if response.status_code == 200:
-                                data = response.json()
-                                console.print(f"[green]✓ Analysis complete for {instance_id}[/green]")
-                                console.print(f"Summary: {data.get('summary', 'No summary available')}")
-                                console.print(f"Total findings: {data.get('total_count', 0)}")
-                                console.print(f"Critical: {data.get('critical_count', 0)}, High: {data.get('high_count', 0)}")
-                            else:
-                                console.print(f"[red]✗ Server error: {response.status_code}[/red]")
-                                console.print(f"Response: {response.text}")
-                        except Exception as e:
-                            console.print(f"[red]✗ Request failed: {e}[/red]")
-                    else:
-                        console.print("[red]✗ No instance ID found in input[/red]")
-                
-                elif "scan all" in user_input.lower() or "all instances" in user_input.lower():
-                    try:
-                        response = requests.post(f"{endpoint}/mcp", json={
-                            "method": "get_inspector_findings",
-                            "params": {"instance_id": None, "severity": "all"}
-                        }, timeout=60)
-                        
-                        if response.status_code == 200:
-                            data = response.json()
-                            console.print(f"[green]✓ Region-wide scan complete[/green]")
-                            console.print(f"Summary: {data.get('summary', 'No summary available')}")
-                            console.print(f"Total findings: {data.get('total_count', 0)}")
-                            console.print(f"Critical: {data.get('critical_count', 0)}, High: {data.get('high_count', 0)}")
-                        else:
-                            console.print(f"[red]✗ Server error: {response.status_code}[/red]")
-                            console.print(f"Response: {response.text}")
-                    except Exception as e:
-                        console.print(f"[red]✗ Request failed: {e}[/red]")
-                
-                elif "patch now" in user_input.lower() or "execute patch" in user_input.lower():
-                    # Extract instance ID for immediate patching
-                    parts = user_input.split()
-                    instance_id = None
-                    for part in parts:
-                        if part.startswith('i-'):
-                            instance_id = part
-                            break
-                    
-                    if instance_id:
-                        try:
-                            response = requests.post(f"{endpoint}/mcp", json={
-                                "method": "execute_patch_now",
-                                "params": {"instance_ids": [instance_id], "patch_level": "non_critical"}
-                            }, timeout=30)
-                            
-                            if response.status_code == 200:
-                                data = response.json()
-                                if data.get('status') == 'success':
-                                    console.print(f"[green]✓ Patch command sent to {instance_id}[/green]")
-                                    console.print(f"Command ID: {data.get('command_id')}")
-                                else:
-                                    console.print(f"[red]✗ Patch failed: {data.get('error')}[/red]")
-                            else:
-                                console.print(f"[red]✗ Server error: {response.status_code}[/red]")
-                        except Exception as e:
-                            console.print(f"[red]✗ Request failed: {e}[/red]")
-                    else:
-                        console.print("[red]✗ No instance ID found in input[/red]")
-                
-                elif "patch status" in user_input.lower():
-                    # Extract instance ID for patch status
-                    parts = user_input.split()
-                    instance_id = None
-                    for part in parts:
-                        if part.startswith('i-'):
-                            instance_id = part
-                            break
-                    
-                    if instance_id:
-                        try:
-                            response = requests.post(f"{endpoint}/mcp", json={
-                                "method": "check_patch_compliance",
-                                "params": {"instance_ids": [instance_id]}
-                            }, timeout=30)
-                            
-                            if response.status_code == 200:
-                                data = response.json()
-                                if data.get('status') == 'success':
-                                    compliance_data = data.get('compliance_data', {})
-                                    instance_data = compliance_data.get(instance_id, {})
-                                    console.print(f"[green]✓ Patch status for {instance_id}:[/green]")
-                                    console.print(f"Compliance: {instance_data.get('compliance_status', 'unknown')}")
-                                    console.print(f"Missing: {instance_data.get('missing_count', 0)}, Installed: {instance_data.get('installed_count', 0)}")
-                                else:
-                                    console.print(f"[red]✗ Failed: {data.get('error')}[/red]")
-                            else:
-                                console.print(f"[red]✗ Server error: {response.status_code}[/red]")
-                        except Exception as e:
-                            console.print(f"[red]✗ Request failed: {e}[/red]")
-                    else:
-                        console.print("[red]✗ No instance ID found in input[/red]")
-                
-                elif "patch window" in user_input.lower():
-                    # Extract instance ID for patch window analysis
-                    parts = user_input.split()
-                    instance_id = None
-                    for part in parts:
-                        if part.startswith('i-'):
-                            instance_id = part
-                            break
-                    
-                    if instance_id:
-                        try:
-                            response = requests.post(f"{endpoint}/mcp", json={
-                                "method": "analyze_optimal_patch_window",
-                                "params": {"instance_id": instance_id, "days_ahead": 7}
-                            }, timeout=30)
-                            
-                            if response.status_code == 200:
-                                data = response.json()
-                                console.print(f"[green]✓ Patch window analysis complete[/green]")
-                                console.print(f"Instance: {data.get('instance_id', instance_id)}")
-                                console.print(f"Status: {data.get('status', 'Analysis complete')}")
-                            else:
-                                console.print(f"[red]✗ Server error: {response.status_code}[/red]")
-                                console.print(f"Response: {response.text}")
-                        except Exception as e:
-                            console.print(f"[red]✗ Request failed: {e}[/red]")
-                    else:
-                        console.print("[red]✗ No instance ID found in input[/red]")
-                
+                if parsed['method'] == 'llm':
+                    console.print(f"[dim]AI understood: {parsed['command']} for {parsed['instance_ids']} ({parsed['confidence']:.1f} confidence)[/dim]")
                 else:
-                    console.print("[yellow]Command not recognized. Try 'analyze vulnerabilities for i-xxxxx' or 'find patch windows for i-xxxxx'[/yellow]")
-
+                    console.print(f"[yellow]Using fallback parsing (AI unavailable)[/yellow]")
+                
+                if parsed['confidence'] >= 0.3:
+                    if parsed.get('needs_instance_id'):
+                        console.print("[yellow]⚠ I understand you want to check vulnerabilities, but I need an instance ID.[/yellow]")
+                        console.print("Try: 'check vulnerabilities for i-00f20fbd7c0075d1d'")
+                    elif parsed['command'] == 'list':
+                        ctx = click.Context(list)
+                        ctx.invoke(list)
+                    else:
+                        _execute_ai_command(endpoint, parsed)
+                else:
+                    console.print("[yellow]⚠ Please be more specific about what you want to do.[/yellow]")
+                    console.print(f"[dim]Debug: command={parsed.get('command')}, instances={parsed.get('instance_ids')}, confidence={parsed.get('confidence')}[/dim]")
                 
         except KeyboardInterrupt:
             break
