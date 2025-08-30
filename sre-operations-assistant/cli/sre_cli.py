@@ -71,7 +71,7 @@ class LLMParser:
             else:
                 # Try to extract instance name from middle of command
                 words = user_input.strip().split()
-                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'all']
+                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vuln', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'report', 'generate', 'resolve', 'schedule', 'patch', 'window', 'events', 'security', 'all']
                 
                 # Find potential instance names (words that aren't command words or numbers)
                 for i, word in enumerate(words):
@@ -130,6 +130,8 @@ JSON:"""
                 command = 'scan_all'
             elif 'list' in input_lower or 'instances' in input_lower:
                 command = 'list'
+            elif 'report' in input_lower and ('vuln' in input_lower or 'vulnerabilities' in input_lower):
+                command = 'vuln_report'
             elif 'resolve' in input_lower and ('vuln' in input_lower or 'vulnerabilities' in input_lower):
                 command = 'resolve_vulns'
             elif 'security' in input_lower and ('events' in input_lower or 'monitor' in input_lower):
@@ -184,7 +186,7 @@ JSON:"""
             else:
                 # Try to extract instance name from middle of command
                 words = text.strip().split()
-                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'all']
+                command_words = ['show', 'get', 'check', 'cpu', 'memory', 'network', 'metrics', 'vulns', 'vuln', 'vulnerabilities', 'status', 'last', 'hours', 'days', 'weeks', 'yesterday', 'critical', 'high', 'medium', 'low', 'report', 'generate', 'resolve', 'schedule', 'patch', 'window', 'events', 'security', 'all']
                 
                 # Find potential instance names (words that aren't command words or numbers)
                 for i, word in enumerate(words):
@@ -207,6 +209,8 @@ JSON:"""
             command = 'vuln_report'
         elif 'schedule' in text_lower or any(phrase in text_lower for phrase in ['maintenance window', 'patch window', 'optimal window']):
             command = 'schedule_patches'
+        elif any(phrase in text_lower for phrase in ['vuln report', 'vulnerability report', 'generate report']) or ('report' in text_lower and any(word in text_lower for word in ['vuln', 'vulnerabilities'])):
+            command = 'vuln_report'
         elif any(phrase in text_lower for phrase in ['resolve vuln', 'fix vuln', 'resolve vulnerabilities']) or ('resolve' in text_lower and any(word in text_lower for word in ['vuln', 'vulnerabilities'])):
             command = 'resolve_vulns'
         elif any(phrase in text_lower for phrase in ['bulk resolve', 'resolve all', 'fix all']):
@@ -228,7 +232,7 @@ JSON:"""
         confidence = 0.8 if command and instance_ids else 0.6 if command and command == 'scan_all' else 0.3 if command else 0.1
         
         # Commands that don't need instance IDs or can work with "all"
-        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status', 'schedule_patches', 'resolve_vulns', 'security_events'] and 'all' not in text.lower() and command != 'vulnerabilities'
+        needs_instance_id = command is not None and not instance_ids and command not in ['scan_all', 'list', 'status', 'schedule_patches', 'resolve_vulns', 'security_events', 'vuln_report'] and 'all' not in text.lower() and command != 'vulnerabilities'
         
         # Extract time range and severity for fallback too
         time_range = "24h"
@@ -743,6 +747,58 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
                         console.print(f"[red]🚨 {len(alerts)} high-risk security alerts![/red]")
                         for alert in alerts[:3]:
                             console.print(f"    {alert['instance_id']}: {alert['alert_level']} risk")
+            else:
+                console.print(f"[red]✗ Error: {response.status_code}[/red]")
+        
+        elif command == 'vuln_report':
+            if not instance_ids:
+                try:
+                    ec2 = boto3.client('ec2')
+                    response = ec2.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+                    instance_ids = []
+                    for reservation in response['Reservations']:
+                        for instance in reservation['Instances']:
+                            instance_ids.append(instance['InstanceId'])
+                except Exception:
+                    console.print("[red]✗ Could not get instance list[/red]")
+                    return
+            
+            console.print(f"[bold blue]📄 Generating vulnerability report for {len(instance_ids)} instance(s)...[/bold blue]")
+            response = requests.post(f"{endpoint}/mcp", json={
+                "method": "generate_vulnerability_report",
+                "params": {
+                    "instance_ids": instance_ids,
+                    "format": "summary"
+                }
+            }, timeout=60)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "error" in data:
+                    console.print(f"[red]✗ Error: {data['error']}[/red]")
+                else:
+                    console.print(f"[green]✓ Report generated[/green]")
+                    
+                    # Report summary
+                    summary = data.get('summary', {})
+                    total_vulns = summary.get('total_vulnerabilities', 0)
+                    critical = summary.get('critical_count', 0)
+                    high = summary.get('high_count', 0)
+                    
+                    console.print(f"\n[bold]Vulnerability Summary:[/bold]")
+                    console.print(f"  Total vulnerabilities: [red]{total_vulns}[/red]")
+                    console.print(f"  Critical severity: [red]{critical}[/red]")
+                    console.print(f"  High severity: [yellow]{high}[/yellow]")
+                    
+                    # Risk assessment
+                    if critical > 0:
+                        console.print(f"\n[red]🚨 CRITICAL: {critical} critical vulnerabilities require immediate attention![/red]")
+                    elif high > 10:
+                        console.print(f"\n[yellow]⚠ HIGH RISK: {high} high-severity vulnerabilities detected[/yellow]")
+                    elif total_vulns > 0:
+                        console.print(f"\n[blue]ℹ MODERATE: {total_vulns} vulnerabilities found, review recommended[/blue]")
+                    else:
+                        console.print(f"\n[green]✅ GOOD: No vulnerabilities detected[/green]")
             else:
                 console.print(f"[red]✗ Error: {response.status_code}[/red]")
         
