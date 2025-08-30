@@ -36,10 +36,13 @@ Thumbs.db
 # Logs
 *.log
 
-# Security scan
+# Temporary debug/check files (not legitimate tests)
 check_*.py
-test_*.py
 debug_*.py
+
+# Local development folders (not for public repo)
+tests/
+scripts/
 
 # Deployment packages
 *.zip
