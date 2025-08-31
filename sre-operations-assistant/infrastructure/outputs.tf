@@ -8,11 +8,6 @@ output "slack_webhook_url" {
   value       = "https://${aws_api_gateway_rest_api.sre_api.id}.execute-api.${local.region}.amazonaws.com/${var.environment}/slack"
 }
 
-output "teams_webhook_url" {
-  description = "Teams webhook URL"
-  value       = "https://${aws_api_gateway_rest_api.sre_api.id}.execute-api.${local.region}.amazonaws.com/${var.environment}/teams"
-}
-
 output "ecr_repository_url" {
   description = "ECR repository URL for container images"
   value       = aws_ecr_repository.sre_repo.repository_url
@@ -62,7 +57,6 @@ output "lambda_function_names" {
   description = "Lambda function names"
   value = {
     slack_bot            = aws_lambda_function.slack_bot.function_name
-    teams_bot           = aws_lambda_function.teams_bot.function_name
     vulnerability_scanner = aws_lambda_function.vulnerability_scanner.function_name
   }
 }

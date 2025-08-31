@@ -25,33 +25,6 @@ resource "aws_lambda_function" "slack_bot" {
   tags = local.common_tags
 }
 
-# Lambda function for Teams bot
-resource "aws_lambda_function" "teams_bot" {
-  function_name    = "${var.project_name}-teams-bot"
-  role            = aws_iam_role.sre_lambda_role.arn
-  handler         = "index.handler"
-  runtime         = "python3.11"
-  timeout         = var.lambda_timeout
-  memory_size     = var.lambda_memory_size
-  
-  filename         = data.archive_file.teams_bot_zip.output_path
-  source_code_hash = data.archive_file.teams_bot_zip.output_base64sha256
-
-  environment {
-    variables = {
-      DYNAMODB_TABLE     = aws_dynamodb_table.sre_operations.name
-      S3_BUCKET          = aws_s3_bucket.sre_artifacts.bucket
-      BEDROCK_MODEL_ID   = var.bedrock_model_id
-      TEAMS_SECRET_ARN   = aws_secretsmanager_secret.teams_webhook.arn
-      # MCP_SERVER_URL will be configured post-deployment
-    }
-  }
-
-  depends_on = [aws_cloudwatch_log_group.lambda_teams_logs]
-
-  tags = local.common_tags
-}
-
 # Lambda function for scheduled vulnerability scans
 resource "aws_lambda_function" "vulnerability_scanner" {
   function_name    = "${var.project_name}-vuln-scanner"
@@ -82,13 +55,6 @@ resource "aws_lambda_function" "vulnerability_scanner" {
 # CloudWatch Log Groups for Lambda functions
 resource "aws_cloudwatch_log_group" "lambda_slack_logs" {
   name              = "/aws/lambda/${var.project_name}-slack-bot"
-  retention_in_days = 7
-
-  tags = local.common_tags
-}
-
-resource "aws_cloudwatch_log_group" "lambda_teams_logs" {
-  name              = "/aws/lambda/${var.project_name}-teams-bot"
   retention_in_days = 7
 
   tags = local.common_tags

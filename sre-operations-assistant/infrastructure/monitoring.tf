@@ -15,9 +15,6 @@ resource "aws_cloudwatch_dashboard" "sre_dashboard" {
           metrics = [
             ["AWS/Lambda", "Duration", "FunctionName", aws_lambda_function.slack_bot.function_name],
             [".", "Errors", ".", "."],
-            [".", "Invocations", ".", "."],
-            ["AWS/Lambda", "Duration", "FunctionName", aws_lambda_function.teams_bot.function_name],
-            [".", "Errors", ".", "."],
             [".", "Invocations", ".", "."]
           ]
           view    = "timeSeries"
