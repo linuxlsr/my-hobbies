@@ -31,7 +31,7 @@ def load_config():
                 return json.load(f)
         except:
             pass
-    return {"mcp_mode": "auto", "local_endpoint": "http://localhost:8000", "remote_endpoint": "http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com"}
+    return {"mcp_mode": "auto", "local_endpoint": "http://localhost:8000", "remote_endpoint": "https://sre-ops.threemoonsnetwork.net"}
 
 def save_config(config):
     """Save CLI configuration"""
@@ -307,7 +307,7 @@ def get_mcp_endpoint():
     config = load_config()
     mode = config.get("mcp_mode", "auto")
     local_endpoint = config.get("local_endpoint", "http://localhost:8000")
-    remote_endpoint = config.get("remote_endpoint", "http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com")
+    remote_endpoint = config.get("remote_endpoint", "https://sre-ops.threemoonsnetwork.net")
     
     if mode == "local":
         endpoints = [local_endpoint]
@@ -966,7 +966,7 @@ def config(mode, local_url, remote_url):
         console.print("[bold blue]Current Configuration:[/bold blue]")
         console.print(f"  Mode: [cyan]{config_data.get('mcp_mode', 'auto')}[/cyan]")
         console.print(f"  Local endpoint: [green]{config_data.get('local_endpoint', 'http://localhost:8000')}[/green]")
-        console.print(f"  Remote endpoint: [yellow]{config_data.get('remote_endpoint', 'http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com')}[/yellow]")
+        console.print(f"  Remote endpoint: [yellow]{config_data.get('remote_endpoint', 'https://sre-ops.threemoonsnetwork.net')}[/yellow]")
         
         # Test current endpoint
         endpoint = get_mcp_endpoint()
@@ -1082,7 +1082,7 @@ def chat():
                 console.print("[bold blue]Current Configuration:[/bold blue]")
                 console.print(f"  Mode: [cyan]{config_data.get('mcp_mode', 'auto')}[/cyan]")
                 console.print(f"  Local endpoint: [green]{config_data.get('local_endpoint', 'http://localhost:8000')}[/green]")
-                console.print(f"  Remote endpoint: [yellow]{config_data.get('remote_endpoint', 'http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com')}[/yellow]")
+                console.print(f"  Remote endpoint: [yellow]{config_data.get('remote_endpoint', 'https://sre-ops.threemoonsnetwork.net')}[/yellow]")
                 
                 # Test current endpoint
                 endpoint = get_mcp_endpoint()
