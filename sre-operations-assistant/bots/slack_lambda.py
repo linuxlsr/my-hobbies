@@ -1,13 +1,41 @@
 import json
 from urllib.parse import parse_qs
 
+def resolve_instance_identifier(identifier):
+    """Resolve Name tag or instance ID to actual instance ID"""
+    import boto3
+    
+    if identifier.startswith('i-'):
+        return identifier
+    
+    # Try to find instance by Name tag
+    try:
+        ec2 = boto3.client('ec2')
+        response = ec2.describe_instances(
+            Filters=[
+                {'Name': 'tag:Name', 'Values': [identifier]},
+                {'Name': 'instance-state-name', 'Values': ['running', 'stopped']}
+            ]
+        )
+        
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                return instance['InstanceId']
+        
+        return identifier  # Return original if not found
+    except Exception:
+        return identifier
+
 def handle_async_scan(event):
     """Handle async vulnerability scan and send delayed response"""
     import urllib.request
     import os
     
-    instance_id = event.get('instance_id')
+    instance_identifier = event.get('instance_id')
     response_url = event.get('response_url')
+    
+    # Resolve Name tag to instance ID
+    instance_id = resolve_instance_identifier(instance_identifier) if instance_identifier else None
     
     try:
         alb_url = os.environ.get('MCP_SERVER_URL')
@@ -32,7 +60,8 @@ def handle_async_scan(event):
             high = data.get('high_count', 0)
             total = data.get('total_count', 0)
             
-            result_text = f'🔍 Analysis complete for: {instance_id or "all instances"}\n{summary}\nCritical: {critical} | High: {high} | Total: {total}'
+            display_name = instance_identifier if instance_identifier != instance_id else instance_id
+            result_text = f'🔍 Analysis complete for: {display_name or "all instances"} ({instance_id})\n{summary}\nCritical: {critical} | High: {high} | Total: {total}'
             
     except Exception as e:
         result_text = f'❌ Scan failed: {str(e)[:100]}'
@@ -62,8 +91,11 @@ def handle_async_patch_now(event):
     import urllib.request
     import os
     
-    instance_id = event.get('instance_id')
+    instance_identifier = event.get('instance_id')
     response_url = event.get('response_url')
+    
+    # Resolve Name tag to instance ID
+    instance_id = resolve_instance_identifier(instance_identifier) if instance_identifier else None
     
     try:
         alb_url = os.environ.get('MCP_SERVER_URL')
@@ -84,10 +116,11 @@ def handle_async_patch_now(event):
         with urllib.request.urlopen(req, timeout=30) as response:
             data = json.loads(response.read().decode('utf-8'))
             
+            display_name = instance_identifier if instance_identifier != instance_id else instance_id
             if data.get('status') == 'success':
-                result_text = f'🔧 Patch execution complete for: {instance_id}\nCommand ID: {data.get("command_id")}\nStatus: {data.get("message")}'
+                result_text = f'🔧 Patch execution complete for: {display_name} ({instance_id})\nCommand ID: {data.get("command_id")}\nStatus: {data.get("message")}'
             else:
-                result_text = f'❌ Patch execution failed for: {instance_id}\nError: {data.get("error", "Unknown error")}'
+                result_text = f'❌ Patch execution failed for: {display_name} ({instance_id})\nError: {data.get("error", "Unknown error")}'
             
     except Exception as e:
         result_text = f'❌ Patch execution failed: {str(e)[:100]}'
@@ -117,8 +150,11 @@ def handle_async_patch_status(event):
     import urllib.request
     import os
     
-    instance_id = event.get('instance_id')
+    instance_identifier = event.get('instance_id')
     response_url = event.get('response_url')
+    
+    # Resolve Name tag to instance ID
+    instance_id = resolve_instance_identifier(instance_identifier) if instance_identifier else None
     
     try:
         alb_url = os.environ.get('MCP_SERVER_URL')
@@ -139,11 +175,12 @@ def handle_async_patch_status(event):
         with urllib.request.urlopen(req, timeout=30) as response:
             data = json.loads(response.read().decode('utf-8'))
             
+            display_name = instance_identifier if instance_identifier != instance_id else instance_id
             if data.get('status') == 'success':
                 if instance_id:
                     compliance_data = data.get('compliance_data', {})
                     instance_data = compliance_data.get(instance_id, {})
-                    result_text = f'📋 Patch status for: {instance_id}\nCompliance: {instance_data.get("compliance_status", "unknown")}\nMissing: {instance_data.get("missing_count", 0)} | Installed: {instance_data.get("installed_count", 0)}'
+                    result_text = f'📋 Patch status for: {display_name} ({instance_id})\nCompliance: {instance_data.get("compliance_status", "unknown")}\nMissing: {instance_data.get("missing_count", 0)} | Installed: {instance_data.get("installed_count", 0)}'
                 else:
                     summary = data.get('summary', {})
                     result_text = f'📋 Patch status summary:\nTotal instances: {summary.get("total_instances", 0)}\nCompliant: {summary.get("compliant_count", 0)} | Non-compliant: {summary.get("non_compliant_count", 0)}'
