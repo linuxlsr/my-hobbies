@@ -10,7 +10,9 @@ def handle_async_scan(event):
     response_url = event.get('response_url')
     
     try:
-        alb_url = os.environ.get('MCP_SERVER_URL', 'http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com')
+        alb_url = os.environ.get('MCP_SERVER_URL')
+        if not alb_url:
+            raise Exception('MCP_SERVER_URL environment variable not set')
         
         payload = json.dumps({
             "method": "get_inspector_findings",
@@ -64,7 +66,9 @@ def handle_async_patch_now(event):
     response_url = event.get('response_url')
     
     try:
-        alb_url = os.environ.get('MCP_SERVER_URL', 'http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com')
+        alb_url = os.environ.get('MCP_SERVER_URL')
+        if not alb_url:
+            raise Exception('MCP_SERVER_URL environment variable not set')
         
         payload = json.dumps({
             "method": "execute_patch_now",
@@ -117,7 +121,9 @@ def handle_async_patch_status(event):
     response_url = event.get('response_url')
     
     try:
-        alb_url = os.environ.get('MCP_SERVER_URL', 'http://sre-ops-assistant-alb-942046254.us-west-2.elb.amazonaws.com')
+        alb_url = os.environ.get('MCP_SERVER_URL')
+        if not alb_url:
+            raise Exception('MCP_SERVER_URL environment variable not set')
         
         payload = json.dumps({
             "method": "check_patch_compliance",
@@ -203,13 +209,22 @@ def handler(event, context):
                 }
                 
                 try:
-                    lambda_client.invoke(
+                    response = lambda_client.invoke(
                         FunctionName=context.function_name,
                         InvocationType='Event',  # Async
                         Payload=json.dumps(async_payload)
                     )
+                    print(f"Async invoke response: {response}")
                 except Exception as e:
                     print(f"Failed to invoke async: {e}")
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': json.dumps({
+                            'response_type': 'ephemeral',
+                            'text': f'❌ dispatch_failed: {str(e)}'
+                        })
+                    }
                 
                 # Return immediate acknowledgment
                 result_text = f'🔍 Vulnerability scan started for: {instance_id or "all instances"}\n⏳ Processing... results will appear shortly'

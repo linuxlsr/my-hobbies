@@ -1,12 +1,9 @@
-# Create placeholder Lambda packages for deployment
+# Create Slack bot Lambda package
 data "archive_file" "slack_bot_zip" {
   type        = "zip"
-  output_path = "${path.module}/placeholder.zip"
-  
-  source {
-    content  = "def handler(event, context): return {'statusCode': 200, 'body': 'Placeholder'}"
-    filename = "index.py"
-  }
+  output_path = "${path.module}/slack_bot.zip"
+  source_file = "${path.module}/../bots/slack_lambda.py"
+  output_file_mode = "0666"
 }
 
 data "archive_file" "teams_bot_zip" {

@@ -699,42 +699,69 @@ class AutomatedRemediation:
     def schedule_automated_patching(self, instance_ids: List[str], criticality: str = "high") -> Dict[str, Any]:
         """Schedule automated patching based on AI recommendations"""
         try:
+            print(f"DEBUG: Starting schedule_automated_patching for {len(instance_ids)} instances")
+            
             remediation_plan = {
                 "plan_id": f"remediation-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}",
                 "instance_schedules": [],
                 "total_instances": len(instance_ids),
                 "criticality": criticality,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat(),
+                "status": "success"
             }
             
             for instance_id in instance_ids:
-                # Get vulnerability analysis
-                vuln_analysis = self.vuln_analyzer.analyze_instance(instance_id)
-                
-                # Find optimal patch window
-                optimal_window = self._find_optimal_patch_window(instance_id, vuln_analysis)
-                
-                # Create schedule entry
-                schedule = {
-                    "instance_id": instance_id,
-                    "vulnerability_count": len(vuln_analysis.get("vulnerabilities", [])),
-                    "risk_score": vuln_analysis.get("risk_score", 0),
-                    "optimal_window": optimal_window,
-                    "patch_actions": self._generate_patch_actions(vuln_analysis, criticality),
-                    "estimated_duration": self._estimate_patch_duration(vuln_analysis),
-                    "pre_patch_checks": self._generate_pre_patch_checks(instance_id),
-                    "rollback_plan": self._generate_rollback_plan(instance_id)
-                }
-                
-                remediation_plan["instance_schedules"].append(schedule)
-                
-                # Schedule EventBridge rule for the optimal window
-                self._schedule_patch_event(instance_id, optimal_window, criticality)
+                try:
+                    print(f"DEBUG: Processing instance {instance_id}")
+                    
+                    # Get vulnerability analysis
+                    vuln_analysis = self.vuln_analyzer.analyze_instance(instance_id)
+                    print(f"DEBUG: Got vuln analysis for {instance_id}")
+                    
+                    # Find optimal patch window
+                    optimal_window = self._find_optimal_patch_window(instance_id, vuln_analysis)
+                    print(f"DEBUG: Got optimal window for {instance_id}")
+                    
+                    # Create schedule entry
+                    schedule = {
+                        "instance_id": instance_id,
+                        "vulnerability_count": len(vuln_analysis.get("vulnerabilities", [])),
+                        "risk_score": vuln_analysis.get("risk_score", 0),
+                        "optimal_window": optimal_window,
+                        "patch_actions": self._generate_patch_actions(vuln_analysis, criticality),
+                        "estimated_duration": self._estimate_patch_duration(vuln_analysis),
+                        "pre_patch_checks": self._generate_pre_patch_checks(instance_id),
+                        "rollback_plan": self._generate_rollback_plan(instance_id)
+                    }
+                    
+                    remediation_plan["instance_schedules"].append(schedule)
+                    
+                    # Try to schedule EventBridge rule (non-blocking)
+                    try:
+                        event_result = self._schedule_patch_event(instance_id, optimal_window, criticality)
+                        schedule["event_bridge_result"] = event_result
+                        print(f"DEBUG: EventBridge result for {instance_id}: {event_result}")
+                    except Exception as event_error:
+                        print(f"WARNING: EventBridge scheduling failed for {instance_id}: {str(event_error)}")
+                        schedule["event_bridge_result"] = {"error": str(event_error), "status": "failed"}
+                    
+                except Exception as instance_error:
+                    print(f"ERROR: Failed to process instance {instance_id}: {str(instance_error)}")
+                    remediation_plan["instance_schedules"].append({
+                        "instance_id": instance_id,
+                        "error": str(instance_error),
+                        "status": "failed"
+                    })
             
+            print(f"DEBUG: Completed schedule_automated_patching, returning plan")
             return remediation_plan
             
         except Exception as e:
+            print(f"ERROR: schedule_automated_patching top-level exception: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
+                "status": "error",
                 "error": str(e),
                 "instance_ids": instance_ids,
                 "criticality": criticality
@@ -1103,10 +1130,16 @@ async def handle_mcp_request(request: MCPRequest):
             print(f"ERROR in generate_vulnerability_report: {str(e)}")
             return {"error": str(e), "method": "generate_vulnerability_report"}
     elif method == "schedule_automated_patching":
-        return schedule_automated_patching(
-            params.get("instance_ids", []),
-            params.get("criticality", "high")
-        )
+        try:
+            result = schedule_automated_patching(
+                params.get("instance_ids", []),
+                params.get("criticality", "high")
+            )
+            print(f"DEBUG: schedule_automated_patching result: {result}")
+            return result
+        except Exception as e:
+            print(f"ERROR: schedule_automated_patching failed: {str(e)}")
+            return {"error": str(e), "method": "schedule_automated_patching"}
     elif method == "get_scheduled_patches":
         return get_scheduled_patches(
             params.get("instance_id")
@@ -1478,9 +1511,16 @@ async def generate_vulnerability_report(instance_ids: List[str], format: str = "
 def schedule_automated_patching(instance_ids: List[str], criticality: str = "high") -> Dict[str, Any]:
     """Schedule automated patching based on AI recommendations"""
     try:
-        return auto_remediation.schedule_automated_patching(instance_ids, criticality)
+        print(f"DEBUG: Calling auto_remediation.schedule_automated_patching with {instance_ids}, {criticality}")
+        result = auto_remediation.schedule_automated_patching(instance_ids, criticality)
+        print(f"DEBUG: auto_remediation result: {result}")
+        return result
     except Exception as e:
+        print(f"ERROR: schedule_automated_patching exception: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
+            "status": "error",
             "error": str(e),
             "instance_ids": instance_ids,
             "criticality": criticality
