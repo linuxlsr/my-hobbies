@@ -48,11 +48,11 @@ resource "aws_security_group" "alb_sg" {
   vpc_id      = aws_vpc.sre_vpc.id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTP access from anywhere"
+    description = "HTTPS access from anywhere"
   }
 
   egress {

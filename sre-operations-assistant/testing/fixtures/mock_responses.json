@@ -1,0 +1,158 @@
+{
+  "inspector_findings": {
+    "success_response": {
+      "findings": [
+        {
+          "severity": "CRITICAL",
+          "title": "CVE-2023-1234: Critical vulnerability in OpenSSL",
+          "description": "Remote code execution vulnerability",
+          "packageVulnerabilityDetails": {
+            "vulnerabilityId": "CVE-2023-1234"
+          }
+        },
+        {
+          "severity": "HIGH", 
+          "title": "CVE-2023-5678: High severity kernel vulnerability",
+          "description": "Local privilege escalation",
+          "packageVulnerabilityDetails": {
+            "vulnerabilityId": "CVE-2023-5678"
+          }
+        },
+        {
+          "severity": "MEDIUM",
+          "title": "CVE-2023-9012: Medium severity library vulnerability", 
+          "description": "Information disclosure",
+          "packageVulnerabilityDetails": {
+            "vulnerabilityId": "CVE-2023-9012"
+          }
+        }
+      ],
+      "nextToken": null
+    },
+    "paginated_response_1": {
+      "findings": [
+        {
+          "severity": "CRITICAL",
+          "title": "CVE-2023-1111: Critical vulnerability page 1"
+        }
+      ],
+      "nextToken": "token123"
+    },
+    "paginated_response_2": {
+      "findings": [
+        {
+          "severity": "HIGH",
+          "title": "CVE-2023-2222: High vulnerability page 2"
+        }
+      ],
+      "nextToken": null
+    },
+    "empty_response": {
+      "findings": [],
+      "nextToken": null
+    }
+  },
+  "cloudwatch_metrics": {
+    "cpu_utilization": {
+      "Datapoints": [
+        {
+          "Timestamp": "2025-01-01T00:00:00Z",
+          "Average": 45.5,
+          "Maximum": 67.2,
+          "Minimum": 23.1
+        },
+        {
+          "Timestamp": "2025-01-01T00:05:00Z", 
+          "Average": 52.3,
+          "Maximum": 71.8,
+          "Minimum": 31.7
+        },
+        {
+          "Timestamp": "2025-01-01T00:10:00Z",
+          "Average": 38.9,
+          "Maximum": 55.4,
+          "Minimum": 22.3
+        }
+      ]
+    },
+    "network_in": {
+      "Datapoints": [
+        {
+          "Timestamp": "2025-01-01T00:00:00Z",
+          "Average": 1024000,
+          "Maximum": 2048000,
+          "Minimum": 512000
+        }
+      ]
+    },
+    "empty_metrics": {
+      "Datapoints": []
+    }
+  },
+  "patch_compliance": {
+    "compliant_instance": {
+      "compliance_summary": {
+        "total_instances": 5,
+        "compliant_instances": 4,
+        "non_compliant_instances": 1,
+        "compliance_percentage": 80.0
+      },
+      "instance_details": [
+        {
+          "instance_id": "i-test001",
+          "compliance_status": "COMPLIANT",
+          "missing_patches": 0
+        },
+        {
+          "instance_id": "i-test002", 
+          "compliance_status": "NON_COMPLIANT",
+          "missing_patches": 3
+        }
+      ]
+    }
+  },
+  "security_events": {
+    "sample_events": {
+      "events": [
+        {
+          "eventTime": "2025-01-01T00:00:00Z",
+          "eventName": "ConsoleLogin",
+          "sourceIPAddress": "203.0.113.1",
+          "userIdentity": {
+            "type": "IAMUser",
+            "userName": "admin"
+          },
+          "severity": "INFO"
+        },
+        {
+          "eventTime": "2025-01-01T00:05:00Z",
+          "eventName": "UnauthorizedAPICall",
+          "sourceIPAddress": "198.51.100.1", 
+          "errorCode": "AccessDenied",
+          "severity": "WARNING"
+        }
+      ],
+      "anomalies": [
+        {
+          "type": "unusual_login_location",
+          "description": "Login from new geographic location",
+          "risk_score": 7.5
+        }
+      ]
+    }
+  },
+  "error_responses": {
+    "api_error": {
+      "error": "AccessDeniedException",
+      "message": "User is not authorized to perform this action"
+    },
+    "timeout_error": {
+      "error": "TimeoutException", 
+      "message": "Request timed out after 30 seconds"
+    },
+    "invalid_instance": {
+      "error": "InvalidInstanceId",
+      "message": "Instance i-invalid does not exist"
+    }
+  }
+}
