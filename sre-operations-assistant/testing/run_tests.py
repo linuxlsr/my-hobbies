@@ -46,6 +46,16 @@ def run_load_tests():
     
     return result.returncode == 0
 
+def run_regression_tests():
+    """Run regression tests"""
+    print("🔄 Running regression tests...")
+    result = subprocess.run([
+        sys.executable, '-m', 'pytest',
+        'testing/regression/',
+        '-v', '--tb=short'
+    ], cwd=Path(__file__).parent.parent)
+    return result.returncode == 0
+
 def check_dependencies():
     """Check if required dependencies are installed"""
     required_packages = [
@@ -72,12 +82,13 @@ def main():
     parser.add_argument('--unit', action='store_true', help='Run unit tests only')
     parser.add_argument('--integration', action='store_true', help='Run integration tests only')
     parser.add_argument('--load', action='store_true', help='Run load tests only')
+    parser.add_argument('--regression', action='store_true', help='Run regression tests only')
     parser.add_argument('--all', action='store_true', help='Run all tests (default)')
     
     args = parser.parse_args()
     
     # Default to running all tests if no specific test type is specified
-    if not any([args.unit, args.integration, args.load]):
+    if not any([args.unit, args.integration, args.load, args.regression]):
         args.all = True
     
     print("🚀 SRE Operations Assistant Test Suite")
@@ -97,6 +108,9 @@ def main():
     
     if args.load or args.all:
         results.append(("Load Tests", run_load_tests()))
+    
+    if args.regression or args.all:
+        results.append(("Regression Tests", run_regression_tests()))
     
     # Print summary
     print("\n" + "=" * 50)

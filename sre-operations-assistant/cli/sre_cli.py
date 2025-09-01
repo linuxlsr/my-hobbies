@@ -630,8 +630,44 @@ def _execute_ai_command(endpoint: str, parsed_cmd: dict):
                                 console.print(f"  [yellow]{metric_name}[/yellow]: {metric_info.get('status', 'no data')}")
                 else:
                     console.print(f"[red]✗ Error: {response.status_code}[/red]")
+            elif len(instance_ids) == 0:
+                console.print(f"[bold blue]📊 Getting metrics for all instances...[/bold blue]")
+                # Get all running instances
+                try:
+                    ec2 = boto3.client('ec2')
+                    response = ec2.describe_instances(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+                    all_instances = []
+                    for reservation in response['Reservations']:
+                        for instance in reservation['Instances']:
+                            all_instances.append(instance['InstanceId'])
+                    
+                    if all_instances:
+                        console.print(f"[green]Found {len(all_instances)} running instances[/green]")
+                        for instance_id in all_instances[:5]:  # Limit to first 5 to avoid overwhelming output
+                            console.print(f"\n[bold]Instance: {instance_id}[/bold]")
+                            response = requests.post(f"{endpoint}/mcp", json={
+                                "method": "get_ec2_cloudwatch_metrics",
+                                "params": {
+                                    "instance_id": instance_id,
+                                    "metric_names": ["CPUUtilization"],
+                                    "time_range": "1h"
+                                }
+                            }, timeout=30)
+                            
+                            if response.status_code == 200:
+                                data = response.json()
+                                if "error" not in data:
+                                    metrics_data = data.get('metrics', {})
+                                    for metric_name, metric_info in metrics_data.items():
+                                        if isinstance(metric_info, dict) and 'average' in metric_info:
+                                            avg = metric_info['average']
+                                            console.print(f"  [cyan]CPU[/cyan]: {avg:.2f}%")
+                    else:
+                        console.print("[yellow]No running instances found[/yellow]")
+                except Exception as e:
+                    console.print(f"[red]Error getting instances: {e}[/red]")
             else:
-                console.print("[yellow]CloudWatch metrics requires a single instance[/yellow]")
+                console.print("[yellow]CloudWatch metrics requires a single instance or 'all'[/yellow]")
         
         elif command == 'status':
             console.print(f"[bold blue]🏥 Checking health status...[/bold blue]")
