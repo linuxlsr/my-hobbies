@@ -131,7 +131,6 @@ The SRE Operations Assistant is a cloud-native, microservices-based system desig
 ### Security Groups
 ```
 ALB Security Group (sg-xxxxxxxxxxxxxxxxx)
-├── Inbound: Port 80 (HTTP) from 0.0.0.0/0
 ├── Inbound: Port 443 (HTTPS) from 0.0.0.0/0
 └── Outbound: All traffic
 
@@ -160,7 +159,7 @@ Internet → WAF → ALB → Security Groups → ECS Tasks → IAM Roles
 │                    SSL Certificate                         │
 │  ┌─────────────────┐              ┌─────────────────────┐  │
 │  │ ACM Certificate │              │ Route53 Validation  │  │
-│  │ *.threemoons... │◄────────────►│ DNS Records         │  │
+│  │ *.your-domain.. │◄────────────►│ DNS Records         │  │
 │  │ Auto-renewal    │              │ CNAME validation    │  │
 │  └─────────────────┘              └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘

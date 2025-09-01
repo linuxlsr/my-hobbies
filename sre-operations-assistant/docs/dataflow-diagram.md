@@ -15,7 +15,7 @@ graph TB
         LAMBDA[Lambda Function<br/>Slack Handler]
         
         %% ECS & ALB
-        ALB[Application Load Balancer<br/>sre-ops-assistant-alb]
+        ALB[Application Load Balancer<br/>sre-ops-assistant-alb<br/>HTTPS Only]
         ECS[ECS Fargate<br/>MCP Server Container]
         
         %% AWS Services
@@ -30,7 +30,7 @@ graph TB
     end
     
     %% Data Flow - CLI
-    CLI -->|HTTP POST /mcp| ALB
+    CLI -->|HTTPS POST /mcp| ALB
     ALB -->|Forward Request| ECS
     ECS -->|Query Findings| INSPECTOR
     INSPECTOR -->|Return Vulnerabilities| ECS
@@ -42,7 +42,7 @@ graph TB
     APIGW -->|Invoke| LAMBDA
     LAMBDA -->|Immediate Response| SLACK
     LAMBDA -->|Async Self-Invoke| LAMBDA
-    LAMBDA -->|HTTP POST /mcp| ALB
+    LAMBDA -->|HTTPS POST /mcp| ALB
     ALB -->|Forward Request| ECS
     ECS -->|Query Findings| INSPECTOR
     INSPECTOR -->|Return Vulnerabilities| ECS
@@ -75,14 +75,14 @@ graph TB
 ## Component Details
 
 ### 1. User Interfaces
-- **CLI Agent**: Direct HTTP calls to ALB endpoint
+- **CLI Agent**: Direct HTTPS calls to ALB endpoint
 - **Slack Bot**: Slash commands via API Gateway webhook
 
 ### 2. Request Flow
 
 #### CLI Flow (Synchronous)
 1. User runs `sre-cli vulnerabilities -i <instance-id>`
-2. CLI sends HTTP POST to `http://sre-ops-assistant-alb.../mcp`
+2. CLI sends HTTPS POST to `https://sre-ops.your-domain.com/mcp`
 3. ALB forwards to ECS container (MCP Server)
 4. MCP Server calls Inspector API with pagination
 5. Returns complete vulnerability data (24 critical, 466 high, etc.)

@@ -32,7 +32,19 @@
 
 ## Infrastructure Deployment
 
-1. **Deploy with Terraform**
+1. **Prepare Lambda Packages**
+   ```bash
+   # Create Lambda deployment packages
+   cd bots
+   zip -r slack_bot.zip slack_lambda.py
+   zip -r teams_bot.zip teams_lambda.py
+   zip -r patch_executor.zip patch_executor.py
+   
+   # Move to infrastructure folder
+   mv *.zip ../infrastructure/
+   ```
+
+2. **Deploy with Terraform**
    ```bash
    cd infrastructure
    terraform init
@@ -78,19 +90,18 @@
 
 4. **Deploy Lambda Functions**
    ```bash
-   # Create deployment packages
-   mkdir -p deployment
-   cd deployment
-   
    # Package Lambda functions
-   zip -r slack-bot.zip ../bots/slack_bot.py ../src/ ../config/
-   zip -r teams-bot.zip ../bots/teams_bot.py ../src/ ../config/
-   zip -r vulnerability-scanner.zip ../src/vulnerability_analyzer.py ../src/aws_services.py ../src/bedrock_models.py ../config/
+   cd bots
+   zip -r slack_bot.zip slack_lambda.py
+   zip -r teams_bot.zip teams_lambda.py
+   zip -r patch_executor.zip patch_executor.py
    
-   # Update Lambda functions
-   aws lambda update-function-code --function-name sre-slack-bot --zip-file fileb://slack-bot.zip
-   aws lambda update-function-code --function-name sre-teams-bot --zip-file fileb://teams-bot.zip
-   aws lambda update-function-code --function-name sre-vulnerability-scanner --zip-file fileb://vulnerability-scanner.zip
+   # Move to infrastructure folder for terraform
+   mv *.zip ../infrastructure/
+   cd ../infrastructure
+   
+   # Deploy via terraform (Lambda functions will use these zip files)
+   terraform apply -target=aws_lambda_function.slack_bot -target=aws_lambda_function.teams_bot
    ```
 
 2. **Test CLI Tool**

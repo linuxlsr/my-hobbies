@@ -38,8 +38,8 @@ export SRE_API_ENDPOINT=http://localhost:8000
 #### 3. Local Testing
 ```bash
 # Run tests
-python3 tests/run_tests.py
-python3 tests/functional_tests.py
+terraform apply
+terraform apply
 
 # Start local development server (if available)
 python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
@@ -96,8 +96,8 @@ git checkout -b feature/new-feature
 # ... edit files ...
 
 # Test changes
-python3 tests/run_tests.py
-python3 tests/functional_tests.py
+terraform apply
+terraform apply
 
 # Commit changes
 git add .
@@ -124,16 +124,16 @@ python3 ../tests/functional_tests.py
 ### 3. Testing Strategy
 ```bash
 # Unit tests (structural)
-python3 tests/run_tests.py
+terraform apply
 
 # Integration tests (functional)
-python3 tests/functional_tests.py
+terraform apply
 
 # CLI tests
-python3 test_cli_commands.py
+terraform apply
 
 # Manual testing
-python3 cli/sre_cli.py chat
+terraform apply chat
 ```
 
 ## 🧪 Testing Guidelines
@@ -246,7 +246,14 @@ terraform {
 
 ### Development Deployment
 ```bash
-cd infrastructure
+# Prepare Lambda packages
+cd bots
+zip -r slack_bot.zip slack_lambda.py
+zip -r teams_bot.zip teams_lambda.py
+zip -r patch_executor.zip patch_executor.py
+
+# Deploy infrastructure
+cd ../infrastructure
 terraform workspace select dev  # or create if needed
 terraform plan
 terraform apply
@@ -254,7 +261,14 @@ terraform apply
 
 ### Production Deployment (Future)
 ```bash
-cd infrastructure
+# Prepare Lambda packages
+cd bots
+zip -r slack_bot.zip slack_lambda.py
+zip -r teams_bot.zip teams_lambda.py
+zip -r patch_executor.zip patch_executor.py
+
+# Deploy infrastructure
+cd ../infrastructure
 terraform workspace select prod
 terraform plan -var-file="prod.tfvars"
 terraform apply -var-file="prod.tfvars"
@@ -268,7 +282,7 @@ terraform apply -var-file="prod.tfvars"
 export LOG_LEVEL=DEBUG
 
 # Run with verbose output
-python3 cli/sre_cli.py --verbose ask "status"
+terraform apply --verbose ask "status"
 
 # Check logs
 tail -f /var/log/sre-ops.log

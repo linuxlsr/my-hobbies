@@ -9,17 +9,17 @@
 **Solutions**:
 ```bash
 # Check endpoint configuration
-python3 cli/sre_cli.py config
+terraform apply config
 
 # Test endpoint directly
 curl https://sre-ops.your-domain.com/health
 
 # Switch to local mode temporarily
-python3 cli/sre_cli.py chat
+terraform apply chat
 # Then type: switch local
 
 # Update endpoint if needed
-python3 cli/sre_cli.py config --remote-url https://your-endpoint.com
+terraform apply config --remote-url https://your-endpoint.com
 ```
 
 #### "No such command 'status'"
@@ -27,11 +27,11 @@ python3 cli/sre_cli.py config --remote-url https://your-endpoint.com
 **Solution**: Use the `ask` command for queries:
 ```bash
 # Wrong
-python3 sre_cli.py status
+terraform apply status
 
 # Correct
-python3 sre_cli.py ask "status"
-python3 sre_cli.py ask "show me the status"
+terraform apply ask "status"
+terraform apply ask "show me the status"
 ```
 
 ### Infrastructure Issues
@@ -172,10 +172,10 @@ aws wafv2 update-web-acl --scope REGIONAL --id your-web-acl-id --default-action 
 ```bash
 # Test all endpoints
 curl https://sre-ops.your-domain.com/health
-python3 cli/sre_cli.py ask "status"
+terraform apply ask "status"
 
 # Run functional tests
-python3 tests/functional_tests.py
+terraform apply
 ```
 
 ### Get System Information

@@ -54,7 +54,14 @@ An AI-powered Site Reliability Engineering assistant that provides comprehensive
 
 ### 1. Deploy Infrastructure
 ```bash
-cd infrastructure
+# Prepare Lambda deployment packages
+cd bots
+zip -r slack_bot.zip slack_lambda.py
+zip -r teams_bot.zip teams_lambda.py
+zip -r patch_executor.zip patch_executor.py
+
+# Deploy infrastructure
+cd ../infrastructure
 terraform init
 terraform plan
 terraform apply
@@ -63,7 +70,7 @@ terraform apply
 ### 2. Use the CLI
 ```bash
 cd cli
-python3 sre_cli.py chat
+terraform apply chat
 ```
 
 ### 3. Test the API
@@ -76,16 +83,16 @@ curl https://sre-ops.your-domain.com/health
 ### CLI Commands
 ```bash
 # Interactive chat mode
-python3 sre_cli.py chat
+terraform apply chat
 
 # Direct queries
-python3 sre_cli.py ask "scan all vulnerabilities"
-python3 sre_cli.py ask "show CPU metrics for your-instance-name"
-python3 sre_cli.py ask "list all instances"
+terraform apply ask "scan all vulnerabilities"
+terraform apply ask "show CPU metrics for your-instance-name"
+terraform apply ask "list all instances"
 
 # Configuration
-python3 sre_cli.py config
-python3 sre_cli.py config --remote-url https://your-endpoint.com
+terraform apply config
+terraform apply config --remote-url https://your-endpoint.com
 ```
 
 ### Slack Integration
@@ -142,13 +149,13 @@ Subscribe to `sre-ops-security-alerts` topic for security events.
 
 ```bash
 # Run structural tests
-python3 tests/run_tests.py
+terraform apply
 
 # Run functional tests
-python3 tests/functional_tests.py
+terraform apply
 
 # Test CLI commands
-python3 test_cli_commands.py
+terraform apply
 ```
 
 ## 📁 Project Structure
