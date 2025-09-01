@@ -1,0 +1,303 @@
+[0m[1mrandom_password.sre_api_key: Refreshing state... [id=none][0m
+[0m[1mdata.archive_file.scanner_zip: Reading...[0m[0m
+[0m[1mdata.archive_file.slack_bot_zip: Reading...[0m[0m
+[0m[1mdata.archive_file.patch_executor_zip: Reading...[0m[0m
+[0m[1mdata.archive_file.scanner_zip: Read complete after 0s [id=a31f067adf78b5d925500bb58ce059c1ccda525f][0m
+[0m[1mdata.archive_file.slack_bot_zip: Read complete after 0s [id=1a122e9e664578db2c99e8caf21bccf2cfd1c2c8][0m
+[0m[1mdata.archive_file.patch_executor_zip: Read complete after 0s [id=709cb3a56d2b04ba10a31befcd9270a1a8beb906][0m
+[0m[1maws_secretsmanager_secret_version.sre_api_key: Refreshing state... [id=arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-api-key-v2-IZEOdi|terraform-20250831232303654800000001][0m
+[0m[1mdata.aws_ecs_cluster.existing_cluster: Reading...[0m[0m
+[0m[1maws_ecr_repository.sre_repo: Refreshing state... [id=sre-ops-assistant][0m
+[0m[1maws_secretsmanager_secret.sre_api_key: Refreshing state... [id=arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-api-key-v2-IZEOdi][0m
+[0m[1maws_cloudwatch_log_group.ecs_logs: Refreshing state... [id=/ecs/sre-ops-assistant][0m
+[0m[1maws_acm_certificate_validation.sre_ops_ssl: Refreshing state... [id=2025-08-31 20:58:10.486 +0000 UTC][0m
+[0m[1maws_secretsmanager_secret.slack_token: Refreshing state... [id=arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-assistant/slack-token-PWTyWx][0m
+[0m[1maws_route53_record.ssl_cert_validation["*.sre-ops.threemoonsnetwork.net"]: Refreshing state... [id=Z3BX20QXDZNSN2__79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net._CNAME][0m
+[0m[1maws_route53_record.ssl_cert_validation["sre-ops.threemoonsnetwork.net"]: Refreshing state... [id=Z3BX20QXDZNSN2__79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net._CNAME][0m
+[0m[1maws_acm_certificate.sre_ops_ssl: Refreshing state... [id=arn:aws:acm:us-west-2:303655880964:certificate/ec446ccc-47e7-40c3-b550-277cae9042c1][0m
+[0m[1maws_secretsmanager_secret.teams_webhook: Refreshing state... [id=arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-assistant/teams-webhook-rOpV9N][0m
+[0m[1maws_iam_role.ecs_execution_role: Refreshing state... [id=sre-ops-assistant-ecs-execution-role][0m
+[0m[1maws_iam_role.sre_lambda_role: Refreshing state... [id=sre-ops-assistant-lambda-role][0m
+[0m[1maws_cloudwatch_log_group.lambda_slack_logs: Refreshing state... [id=/aws/lambda/sre-ops-assistant-slack-bot][0m
+[0m[1mdata.aws_region.current: Reading...[0m[0m
+[0m[1mdata.aws_region.current: Read complete after 0s [id=us-west-2][0m
+[0m[1mdata.aws_ecs_cluster.existing_cluster: Read complete after 1s [id=arn:aws:ecs:us-west-2:303655880964:cluster/sre-ops-assistant-cluster][0m
+[0m[1maws_cloudwatch_log_group.lambda_patch_logs: Refreshing state... [id=/aws/lambda/sre-ops-assistant-patch-executor][0m
+[0m[1mdata.aws_caller_identity.current: Reading...[0m[0m
+[0m[1maws_iam_role.ecs_task_role: Refreshing state... [id=sre-ops-assistant-ecs-task-role][0m
+[0m[1maws_sns_topic.sre_alerts: Refreshing state... [id=arn:aws:sns:us-west-2:303655880964:sre-ops-assistant-alerts][0m
+[0m[1mdata.aws_caller_identity.current: Read complete after 0s [id=303655880964][0m
+[0m[1mdata.aws_availability_zones.available: Reading...[0m[0m
+[0m[1maws_security_group_rule.alb_https_ingress: Refreshing state... [id=sgrule-3180256293][0m
+[0m[1maws_dynamodb_table.sre_operations: Refreshing state... [id=sre-ops-assistant-operations][0m
+[0m[1maws_cloudwatch_log_group.lambda_scanner_logs: Refreshing state... [id=/aws/lambda/sre-ops-assistant-vuln-scanner][0m
+[0m[1maws_vpc.sre_vpc: Refreshing state... [id=vpc-0e8cd679682007d29][0m
+[0m[1maws_cloudwatch_event_rule.vulnerability_scan_schedule: Refreshing state... [id=sre-ops-assistant-vuln-scan-schedule][0m
+[0m[1maws_ecs_cluster.sre_cluster: Refreshing state... [id=arn:aws:ecs:us-west-2:303655880964:cluster/sre-ops-assistant-cluster][0m
+[0m[1maws_sns_topic.alerts: Refreshing state... [id=arn:aws:sns:us-west-2:303655880964:sre-ops-security-alerts][0m
+[0m[1mdata.aws_route53_zone.threemoonsnetwork: Reading...[0m[0m
+[0m[1maws_api_gateway_rest_api.sre_api: Refreshing state... [id=316kvw7woh][0m
+[0m[1mdata.aws_lb.existing_alb: Reading...[0m[0m
+[0m[1mdata.aws_availability_zones.available: Read complete after 0s [id=us-west-2][0m
+[0m[1mdata.aws_ecs_service.existing_service: Reading...[0m[0m
+[0m[1maws_iam_policy.ecs_secrets_policy: Refreshing state... [id=arn:aws:iam::303655880964:policy/sre-ops-assistant-ecs-secrets-policy][0m
+[0m[1maws_ecr_lifecycle_policy.sre_repo_policy: Refreshing state... [id=sre-ops-assistant][0m
+[0m[1mdata.aws_ecs_service.existing_service: Read complete after 1s [id=arn:aws:ecs:us-west-2:303655880964:service/sre-ops-assistant-cluster/sre-ops-assistant-mcp-server][0m
+[0m[1maws_iam_role_policy_attachment.ecs_execution_role_policy: Refreshing state... [id=sre-ops-assistant-ecs-execution-role-20250823182347379800000003][0m
+[0m[1mdata.aws_route53_zone.threemoonsnetwork: Read complete after 1s [id=Z3BX20QXDZNSN2][0m
+[0m[1maws_s3_bucket.sre_artifacts: Refreshing state... [id=sre-ops-assistant-artifacts-303655880964][0m
+[0m[1maws_iam_policy.eventbridge_policy: Refreshing state... [id=arn:aws:iam::303655880964:policy/sre-ops-assistant-eventbridge-policy][0m
+[0m[1maws_budgets_budget.sre_budget: Refreshing state... [id=303655880964:sre-ops-assistant-monthly-budget][0m
+[0m[1maws_route53_record.sre_ops_domain: Refreshing state... [id=Z3BX20QXDZNSN2_sre-ops.threemoonsnetwork.net_A][0m
+[0m[1maws_iam_role_policy_attachment.ecs_execution_secrets_policy: Refreshing state... [id=sre-ops-assistant-ecs-execution-role-20250823182347651200000004][0m
+[0m[1maws_api_gateway_resource.slack_webhook: Refreshing state... [id=a9cm3x][0m
+[0m[1maws_iam_role_policy_attachment.ecs_task_eventbridge_policy: Refreshing state... [id=sre-ops-assistant-ecs-task-role-20250831004100636700000001][0m
+[0m[1maws_api_gateway_method.slack_options: Refreshing state... [id=agm-316kvw7woh-a9cm3x-OPTIONS][0m
+[0m[1maws_api_gateway_method.slack_post: Refreshing state... [id=agm-316kvw7woh-a9cm3x-POST][0m
+[0m[1mdata.aws_lb.existing_alb: Read complete after 1s [id=arn:aws:elasticloadbalancing:us-west-2:303655880964:loadbalancer/app/sre-ops-assistant-alb/ae1f3b74fd4baef2][0m
+[0m[1maws_lb_target_group.https_tg: Refreshing state... [id=arn:aws:elasticloadbalancing:us-west-2:303655880964:targetgroup/sre-ops-https-tg-v2/457819692e233142][0m
+[0m[1maws_api_gateway_method_response.slack_options_response: Refreshing state... [id=agmr-316kvw7woh-a9cm3x-OPTIONS-200][0m
+[0m[1maws_api_gateway_integration.slack_options_integration: Refreshing state... [id=agi-316kvw7woh-a9cm3x-OPTIONS][0m
+[0m[1maws_api_gateway_integration_response.slack_options_integration_response: Refreshing state... [id=agir-316kvw7woh-a9cm3x-OPTIONS-200][0m
+[0m[1maws_subnet.public_subnet_2: Refreshing state... [id=subnet-0e8aa966fda872fc5][0m
+[0m[1maws_subnet.public_subnet_1: Refreshing state... [id=subnet-0c9b5790af6bc8648][0m
+[0m[1maws_internet_gateway.sre_igw: Refreshing state... [id=igw-0e32602c5df45c4da][0m
+[0m[1maws_security_group.lambda_sg: Refreshing state... [id=sg-01db47c08634719d3][0m
+[0m[1maws_security_group.alb_sg: Refreshing state... [id=sg-0bcc08fbdcb6b3254][0m
+[0m[1maws_lb_target_group.sre_tg: Refreshing state... [id=arn:aws:elasticloadbalancing:us-west-2:303655880964:targetgroup/sre-ops-assistant-tg/60dedb6ad75bb9fd][0m
+[0m[1maws_security_group.ecs_sg: Refreshing state... [id=sg-0207a070d55774e21][0m
+[0m[1maws_lb_listener.https_listener: Refreshing state... [id=arn:aws:elasticloadbalancing:us-west-2:303655880964:listener/app/sre-ops-assistant-alb/ae1f3b74fd4baef2/5c85a237d418eb16][0m
+[0m[1maws_route_table.public_rt: Refreshing state... [id=rtb-0b504b2cfbc2042d4][0m
+[0m[1maws_lb.sre_alb: Refreshing state... [id=arn:aws:elasticloadbalancing:us-west-2:303655880964:loadbalancer/app/sre-ops-assistant-alb/ae1f3b74fd4baef2][0m
+[0m[1maws_route_table_association.public_rta_2: Refreshing state... [id=rtbassoc-0b7042fe7e9f47372][0m
+[0m[1maws_route_table_association.public_rta_1: Refreshing state... [id=rtbassoc-06949aa924d1abc81][0m
+[0m[1maws_ecs_service.sre_mcp_server_https: Refreshing state... [id=arn:aws:ecs:us-west-2:303655880964:service/sre-ops-assistant-cluster/sre-ops-assistant-mcp-server-https][0m
+[0m[1maws_lb_listener.sre_listener: Refreshing state... [id=arn:aws:elasticloadbalancing:us-west-2:303655880964:listener/app/sre-ops-assistant-alb/ae1f3b74fd4baef2/bb9e2b07cacaebaf][0m
+[0m[1maws_s3_bucket_server_side_encryption_configuration.sre_artifacts_encryption: Refreshing state... [id=sre-ops-assistant-artifacts-303655880964][0m
+[0m[1maws_s3_bucket_lifecycle_configuration.sre_artifacts_lifecycle: Refreshing state... [id=sre-ops-assistant-artifacts-303655880964][0m
+[0m[1maws_iam_policy.sre_operations_policy: Refreshing state... [id=arn:aws:iam::303655880964:policy/sre-ops-assistant-operations-policy][0m
+[0m[1maws_s3_bucket_versioning.sre_artifacts_versioning: Refreshing state... [id=sre-ops-assistant-artifacts-303655880964][0m
+[0m[1maws_ecs_task_definition.mcp_server: Refreshing state... [id=sre-ops-assistant-mcp-server][0m
+[0m[1maws_lambda_function.patch_executor: Refreshing state... [id=sre-ops-assistant-patch-executor][0m
+[0m[1maws_lambda_function.vulnerability_scanner: Refreshing state... [id=sre-ops-assistant-vuln-scanner][0m
+[0m[1maws_lambda_function.slack_bot: Refreshing state... [id=sre-ops-assistant-slack-bot][0m
+[0m[1maws_iam_role_policy_attachment.sre_lambda_policy: Refreshing state... [id=sre-ops-assistant-lambda-role-20250823182411181300000007][0m
+[0m[1maws_iam_role_policy_attachment.ecs_task_policy: Refreshing state... [id=sre-ops-assistant-ecs-task-role-20250823182411175100000006][0m
+[0m[1maws_ecs_service.mcp_server: Refreshing state... [id=arn:aws:ecs:us-west-2:303655880964:service/sre-ops-assistant-cluster/sre-ops-assistant-mcp-server][0m
+[0m[1maws_cloudwatch_metric_alarm.ecs_cpu_high: Refreshing state... [id=sre-ops-assistant-ecs-cpu-high][0m
+[0m[1maws_lambda_permission.allow_eventbridge_patch: Refreshing state... [id=AllowExecutionFromEventBridgePatch][0m
+[0m[1maws_lambda_permission.allow_api_gateway_slack: Refreshing state... [id=AllowExecutionFromAPIGateway][0m
+[0m[1maws_cloudwatch_dashboard.sre_dashboard: Refreshing state... [id=sre-ops-assistant-dashboard][0m
+[0m[1maws_api_gateway_integration.slack_integration: Refreshing state... [id=agi-316kvw7woh-a9cm3x-POST][0m
+[0m[1maws_cloudwatch_event_target.vulnerability_scan_target: Refreshing state... [id=sre-ops-assistant-vuln-scan-schedule-VulnerabilityScanTarget][0m
+[0m[1maws_cloudwatch_metric_alarm.lambda_error_rate: Refreshing state... [id=sre-ops-assistant-lambda-error-rate][0m
+[0m[1maws_lambda_permission.allow_eventbridge_vuln_scan: Refreshing state... [id=AllowExecutionFromEventBridge][0m
+[0m[1maws_api_gateway_deployment.sre_api_deployment: Refreshing state... [id=zonrt6][0m
+[0m[1maws_api_gateway_stage.sre_api_stage: Refreshing state... [id=ags-316kvw7woh-dev][0m
+[0m[1maws_api_gateway_usage_plan.sre_usage_plan: Refreshing state... [id=a6b33k][0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [33m~[0m update in-place[0m
+  [31m-[0m destroy[0m
+[32m+[0m/[31m-[0m create replacement and then destroy[0m
+
+Terraform will perform the following actions:
+
+[1m  # aws_acm_certificate.sre_ops_ssl[0m will be [1m[31mdestroyed[0m
+  # (because aws_acm_certificate.sre_ops_ssl is not in configuration)
+[0m  [31m-[0m[0m resource "aws_acm_certificate" "sre_ops_ssl" {
+      [31m-[0m[0m arn                       = "arn:aws:acm:us-west-2:303655880964:certificate/ec446ccc-47e7-40c3-b550-277cae9042c1" [90m-> null[0m[0m
+      [31m-[0m[0m domain_name               = "sre-ops.threemoonsnetwork.net" [90m-> null[0m[0m
+      [31m-[0m[0m domain_validation_options = [
+          [31m-[0m[0m {
+              [31m-[0m[0m domain_name           = "*.sre-ops.threemoonsnetwork.net"
+              [31m-[0m[0m resource_record_name  = "_79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net."
+              [31m-[0m[0m resource_record_type  = "CNAME"
+              [31m-[0m[0m resource_record_value = "_e7038a75733c4bd9c33c897f8cdfc95c.xlfgrmvvlj.acm-validations.aws."
+            },
+          [31m-[0m[0m {
+              [31m-[0m[0m domain_name           = "sre-ops.threemoonsnetwork.net"
+              [31m-[0m[0m resource_record_name  = "_79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net."
+              [31m-[0m[0m resource_record_type  = "CNAME"
+              [31m-[0m[0m resource_record_value = "_e7038a75733c4bd9c33c897f8cdfc95c.xlfgrmvvlj.acm-validations.aws."
+            },
+        ] [90m-> null[0m[0m
+      [31m-[0m[0m id                        = "arn:aws:acm:us-west-2:303655880964:certificate/ec446ccc-47e7-40c3-b550-277cae9042c1" [90m-> null[0m[0m
+      [31m-[0m[0m key_algorithm             = "RSA_2048" [90m-> null[0m[0m
+      [31m-[0m[0m not_after                 = "2026-09-29T23:59:59Z" [90m-> null[0m[0m
+      [31m-[0m[0m not_before                = "2025-08-31T00:00:00Z" [90m-> null[0m[0m
+      [31m-[0m[0m pending_renewal           = false [90m-> null[0m[0m
+      [31m-[0m[0m renewal_eligibility       = "ELIGIBLE" [90m-> null[0m[0m
+      [31m-[0m[0m renewal_summary           = [] [90m-> null[0m[0m
+      [31m-[0m[0m status                    = "ISSUED" [90m-> null[0m[0m
+      [31m-[0m[0m subject_alternative_names = [
+          [31m-[0m[0m "*.sre-ops.threemoonsnetwork.net",
+          [31m-[0m[0m "sre-ops.threemoonsnetwork.net",
+        ] [90m-> null[0m[0m
+      [31m-[0m[0m tags                      = {
+          [31m-[0m[0m "Name" = "SRE Operations SSL Certificate"
+        } [90m-> null[0m[0m
+      [31m-[0m[0m tags_all                  = {
+          [31m-[0m[0m "Name" = "SRE Operations SSL Certificate"
+        } [90m-> null[0m[0m
+      [31m-[0m[0m type                      = "AMAZON_ISSUED" [90m-> null[0m[0m
+      [31m-[0m[0m validation_emails         = [] [90m-> null[0m[0m
+      [31m-[0m[0m validation_method         = "DNS" [90m-> null[0m[0m
+        [90m# (2 unchanged attributes hidden)[0m[0m
+
+      [31m-[0m[0m options {
+          [31m-[0m[0m certificate_transparency_logging_preference = "ENABLED" [90m-> null[0m[0m
+        }
+    }
+
+[1m  # aws_acm_certificate_validation.sre_ops_ssl[0m will be [1m[31mdestroyed[0m
+  # (because aws_acm_certificate_validation.sre_ops_ssl is not in configuration)
+[0m  [31m-[0m[0m resource "aws_acm_certificate_validation" "sre_ops_ssl" {
+      [31m-[0m[0m certificate_arn         = "arn:aws:acm:us-west-2:303655880964:certificate/ec446ccc-47e7-40c3-b550-277cae9042c1" [90m-> null[0m[0m
+      [31m-[0m[0m id                      = "2025-08-31 20:58:10.486 +0000 UTC" [90m-> null[0m[0m
+      [31m-[0m[0m validation_record_fqdns = [
+          [31m-[0m[0m "_79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net",
+        ] [90m-> null[0m[0m
+    }
+
+[1m  # aws_api_gateway_deployment.sre_api_deployment[0m must be [1m[31mreplaced[0m
+[0m[32m+[0m/[31m-[0m[0m resource "aws_api_gateway_deployment" "sre_api_deployment" {
+      [33m~[0m[0m created_date  = "2025-08-31T23:23:04Z" -> (known after apply)
+      [33m~[0m[0m execution_arn = "arn:aws:execute-api:us-west-2:303655880964:316kvw7woh/" -> (known after apply)
+      [33m~[0m[0m id            = "zonrt6" -> (known after apply)
+      [33m~[0m[0m invoke_url    = "https://316kvw7woh.execute-api.us-west-2.amazonaws.com/" -> (known after apply)
+      [33m~[0m[0m triggers      = {
+          [31m-[0m[0m "redeployment" = "02dfbb67854f61193d73d021ec8a2bea5a45925d"
+        } -> (known after apply) [31m# forces replacement[0m[0m
+        [90m# (2 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # aws_api_gateway_stage.sre_api_stage[0m will be updated in-place
+[0m  [33m~[0m[0m resource "aws_api_gateway_stage" "sre_api_stage" {
+      [33m~[0m[0m deployment_id         = "zonrt6" -> (known after apply)
+        id                    = "ags-316kvw7woh-dev"
+        tags                  = {
+            "Environment" = "dev"
+            "ManagedBy"   = "terraform"
+            "Project"     = "sre-operations-assistant"
+        }
+        [90m# (14 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # aws_route53_record.ssl_cert_validation["*.sre-ops.threemoonsnetwork.net"][0m will be [1m[31mdestroyed[0m
+  # (because aws_route53_record.ssl_cert_validation is not in configuration)
+[0m  [31m-[0m[0m resource "aws_route53_record" "ssl_cert_validation" {
+      [31m-[0m[0m allow_overwrite                  = true [90m-> null[0m[0m
+      [31m-[0m[0m fqdn                             = "_79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net" [90m-> null[0m[0m
+      [31m-[0m[0m id                               = "Z3BX20QXDZNSN2__79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net._CNAME" [90m-> null[0m[0m
+      [31m-[0m[0m multivalue_answer_routing_policy = false [90m-> null[0m[0m
+      [31m-[0m[0m name                             = "_79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net" [90m-> null[0m[0m
+      [31m-[0m[0m records                          = [
+          [31m-[0m[0m "_e7038a75733c4bd9c33c897f8cdfc95c.xlfgrmvvlj.acm-validations.aws.",
+        ] [90m-> null[0m[0m
+      [31m-[0m[0m ttl                              = 60 [90m-> null[0m[0m
+      [31m-[0m[0m type                             = "CNAME" [90m-> null[0m[0m
+      [31m-[0m[0m zone_id                          = "Z3BX20QXDZNSN2" [90m-> null[0m[0m
+        [90m# (2 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # aws_route53_record.ssl_cert_validation["sre-ops.threemoonsnetwork.net"][0m will be [1m[31mdestroyed[0m
+  # (because aws_route53_record.ssl_cert_validation is not in configuration)
+[0m  [31m-[0m[0m resource "aws_route53_record" "ssl_cert_validation" {
+      [31m-[0m[0m allow_overwrite                  = true [90m-> null[0m[0m
+      [31m-[0m[0m fqdn                             = "_79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net" [90m-> null[0m[0m
+      [31m-[0m[0m id                               = "Z3BX20QXDZNSN2__79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net._CNAME" [90m-> null[0m[0m
+      [31m-[0m[0m multivalue_answer_routing_policy = false [90m-> null[0m[0m
+      [31m-[0m[0m name                             = "_79c052c57364da49a0521670472b8d37.sre-ops.threemoonsnetwork.net" [90m-> null[0m[0m
+      [31m-[0m[0m records                          = [
+          [31m-[0m[0m "_e7038a75733c4bd9c33c897f8cdfc95c.xlfgrmvvlj.acm-validations.aws.",
+        ] [90m-> null[0m[0m
+      [31m-[0m[0m ttl                              = 60 [90m-> null[0m[0m
+      [31m-[0m[0m type                             = "CNAME" [90m-> null[0m[0m
+      [31m-[0m[0m zone_id                          = "Z3BX20QXDZNSN2" [90m-> null[0m[0m
+        [90m# (2 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # aws_secretsmanager_secret.sre_api_key[0m will be [1m[31mdestroyed[0m
+  # (because aws_secretsmanager_secret.sre_api_key is not in configuration)
+[0m  [31m-[0m[0m resource "aws_secretsmanager_secret" "sre_api_key" {
+      [31m-[0m[0m arn                            = "arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-api-key-v2-IZEOdi" [90m-> null[0m[0m
+      [31m-[0m[0m description                    = "API key for SRE Operations Assistant" [90m-> null[0m[0m
+      [31m-[0m[0m force_overwrite_replica_secret = false [90m-> null[0m[0m
+      [31m-[0m[0m id                             = "arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-api-key-v2-IZEOdi" [90m-> null[0m[0m
+      [31m-[0m[0m name                           = "sre-ops-api-key-v2" [90m-> null[0m[0m
+      [31m-[0m[0m recovery_window_in_days        = 30 [90m-> null[0m[0m
+      [31m-[0m[0m tags                           = {} [90m-> null[0m[0m
+      [31m-[0m[0m tags_all                       = {} [90m-> null[0m[0m
+        [90m# (3 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # aws_secretsmanager_secret_version.sre_api_key[0m will be [1m[31mdestroyed[0m
+  # (because aws_secretsmanager_secret_version.sre_api_key is not in configuration)
+[0m  [31m-[0m[0m resource "aws_secretsmanager_secret_version" "sre_api_key" {
+      [31m-[0m[0m arn              = "arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-api-key-v2-IZEOdi" [90m-> null[0m[0m
+      [31m-[0m[0m id               = "arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-api-key-v2-IZEOdi|terraform-20250831232303654800000001" [90m-> null[0m[0m
+      [31m-[0m[0m secret_id        = "arn:aws:secretsmanager:us-west-2:303655880964:secret:sre-ops-api-key-v2-IZEOdi" [90m-> null[0m[0m
+      [31m-[0m[0m secret_string    = (sensitive value) [90m-> null[0m[0m
+      [31m-[0m[0m secret_string_wo = (write-only attribute) [90m-> null[0m[0m
+      [31m-[0m[0m version_id       = "terraform-20250831232303654800000001" [90m-> null[0m[0m
+      [31m-[0m[0m version_stages   = [
+          [31m-[0m[0m "AWSCURRENT",
+        ] [90m-> null[0m[0m
+        [90m# (1 unchanged attribute hidden)[0m[0m
+    }
+
+[1m  # aws_security_group.alb_sg[0m will be updated in-place
+[0m  [33m~[0m[0m resource "aws_security_group" "alb_sg" {
+        id                     = "sg-0bcc08fbdcb6b3254"
+      [33m~[0m[0m ingress                = [
+          [31m-[0m[0m {
+              [31m-[0m[0m cidr_blocks      = [
+                  [31m-[0m[0m "0.0.0.0/0",
+                ]
+              [31m-[0m[0m from_port        = 443
+              [31m-[0m[0m ipv6_cidr_blocks = []
+              [31m-[0m[0m prefix_list_ids  = []
+              [31m-[0m[0m protocol         = "tcp"
+              [31m-[0m[0m security_groups  = []
+              [31m-[0m[0m self             = false
+              [31m-[0m[0m to_port          = 443
+                [90m# (1 unchanged attribute hidden)[0m[0m
+            },
+            [90m# (1 unchanged element hidden)[0m[0m
+        ]
+        name                   = "sre-ops-assistant-alb-20250823193100250500000001"
+        tags                   = {
+            "Environment" = "dev"
+            "ManagedBy"   = "terraform"
+            "Name"        = "sre-ops-assistant-alb-sg"
+            "Project"     = "sre-operations-assistant"
+        }
+        [90m# (8 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # random_password.sre_api_key[0m will be [1m[31mdestroyed[0m
+  # (because random_password.sre_api_key is not in configuration)
+[0m  [31m-[0m[0m resource "random_password" "sre_api_key" {
+      [31m-[0m[0m bcrypt_hash = (sensitive value) [90m-> null[0m[0m
+      [31m-[0m[0m id          = "none" [90m-> null[0m[0m
+      [31m-[0m[0m length      = 32 [90m-> null[0m[0m
+      [31m-[0m[0m lower       = true [90m-> null[0m[0m
+      [31m-[0m[0m min_lower   = 0 [90m-> null[0m[0m
+      [31m-[0m[0m min_numeric = 0 [90m-> null[0m[0m
+      [31m-[0m[0m min_special = 0 [90m-> null[0m[0m
+      [31m-[0m[0m min_upper   = 0 [90m-> null[0m[0m
+      [31m-[0m[0m number      = true [90m-> null[0m[0m
+      [31m-[0m[0m numeric     = true [90m-> null[0m[0m
+      [31m-[0m[0m result      = (sensitive value) [90m-> null[0m[0m
+      [31m-[0m[0m special     = true [90m-> null[0m[0m
+      [31m-[0m[0m upper       = true [90m-> null[0m[0m
+    }
+
+[1mPlan:[0m 1 to add, 2 to change, 8 to destroy.
+[0m[90m
+─────────────────────────────────────────────────────────────────────────────[0m
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
