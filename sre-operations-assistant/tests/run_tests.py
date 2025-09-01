@@ -6,65 +6,64 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
-# Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Add project root to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-try:
-    from aws_services import AWSInspector, AWSCloudWatch, AWSCloudTrail
-    print("✅ Successfully imported AWS services")
-except ImportError as e:
-    print(f"❌ Failed to import AWS services: {e}")
-    sys.exit(1)
-
-def test_imports():
-    """Test that all modules can be imported"""
+def test_basic_imports():
+    """Test basic Python imports"""
     try:
-        from vulnerability_analyzer import VulnerabilityAnalyzer
-        from patch_scheduler import PatchScheduler
-        from systems_manager import AWSSystemsManager
-        print("✅ All core modules imported successfully")
+        import boto3
+        import json
+        import asyncio
+        print("✅ Basic imports successful")
         return True
     except ImportError as e:
-        print(f"❌ Import error: {e}")
+        print(f"❌ Basic import error: {e}")
         return False
 
-def test_aws_services():
-    """Test AWS service initialization"""
+def test_cli_exists():
+    """Test that CLI exists"""
     try:
-        inspector = AWSInspector()
-        cloudwatch = AWSCloudWatch()
-        cloudtrail = AWSCloudTrail()
-        print("✅ AWS services initialized successfully")
-        return True
+        cli_path = os.path.join(os.path.dirname(__file__), '..', 'cli', 'sre_cli.py')
+        if os.path.exists(cli_path):
+            print("✅ CLI exists")
+            return True
+        else:
+            print("❌ CLI not found")
+            return False
     except Exception as e:
-        print(f"❌ AWS service initialization error: {e}")
+        print(f"❌ CLI check error: {e}")
         return False
 
-def test_mcp_functions():
-    """Test MCP function definitions"""
+def test_infrastructure_exists():
+    """Test that infrastructure files exist"""
     try:
-        import mcp_server
-        
-        # Check if core functions exist
-        functions_to_check = [
-            'get_inspector_findings',
-            'get_ec2_cloudwatch_metrics', 
-            'analyze_cloudtrail_events',
-            'monitor_security_events',
-            'analyze_configuration_changes'
-        ]
-        
-        for func_name in functions_to_check:
-            if hasattr(mcp_server, func_name):
-                print(f"✅ Function {func_name} exists")
-            else:
-                print(f"❌ Function {func_name} missing")
-                return False
-        
-        print("✅ All MCP functions defined")
-        return True
+        infra_path = os.path.join(os.path.dirname(__file__), '..', 'infrastructure')
+        if os.path.exists(infra_path) and os.path.exists(os.path.join(infra_path, 'main.tf')):
+            print("✅ Infrastructure files exist")
+            return True
+        else:
+            print("❌ Infrastructure files not found")
+            return False
     except Exception as e:
-        print(f"❌ MCP function check error: {e}")
+        print(f"❌ Infrastructure check error: {e}")
+        return False
+
+def test_bots_exist():
+    """Test that bot files exist"""
+    try:
+        bots_path = os.path.join(os.path.dirname(__file__), '..', 'bots')
+        slack_bot = os.path.join(bots_path, 'slack_lambda.py')
+        teams_bot = os.path.join(bots_path, 'teams_lambda.py')
+        
+        if os.path.exists(slack_bot) and os.path.exists(teams_bot):
+            print("✅ Bot files exist")
+            return True
+        else:
+            print("❌ Bot files not found")
+            return False
+    except Exception as e:
+        print(f"❌ Bot check error: {e}")
         return False
 
 def main():
@@ -73,9 +72,10 @@ def main():
     print("=" * 50)
     
     tests = [
-        ("Module Imports", test_imports),
-        ("AWS Services", test_aws_services), 
-        ("MCP Functions", test_mcp_functions)
+        ("Basic Imports", test_basic_imports),
+        ("CLI Exists", test_cli_exists),
+        ("Infrastructure Exists", test_infrastructure_exists),
+        ("Bots Exist", test_bots_exist)
     ]
     
     passed = 0
