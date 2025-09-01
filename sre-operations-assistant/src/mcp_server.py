@@ -4,14 +4,113 @@ import asyncio
 import boto3
 import json
 import statistics
+import os
+import time
+import hashlib
+import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, status
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 import uvicorn
+from collections import defaultdict, deque
+from botocore.exceptions import ClientError
 
 app = FastAPI(title="SRE Operations Assistant")
+
+# =============================================================================
+# SECURITY MIDDLEWARE
+# =============================================================================
+
+class RateLimiter:
+    def __init__(self, max_requests: int = 100, window_seconds: int = 300):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.requests = defaultdict(deque)
+    
+    def is_allowed(self, client_id: str) -> bool:
+        now = time.time()
+        client_requests = self.requests[client_id]
+        
+        while client_requests and client_requests[0] <= now - self.window_seconds:
+            client_requests.popleft()
+        
+        if len(client_requests) >= self.max_requests:
+            return False
+        
+        client_requests.append(now)
+        return True
+
+class SecurityMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app):
+        super().__init__(app)
+        self.rate_limiter = RateLimiter()
+        self.audit_logger = self._setup_logger()
+        self.require_api_key = os.getenv("REQUIRE_API_KEY", "false").lower() == "true"
+        self.api_key = self._load_api_key() if self.require_api_key else None
+    
+    def _setup_logger(self):
+        logger = logging.getLogger("sre_ops_audit")
+        logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        return logger
+    
+    def _load_api_key(self):
+        try:
+            secrets_client = boto3.client('secretsmanager')
+            response = secrets_client.get_secret_value(SecretId='sre-ops-api-key')
+            secret_data = json.loads(response['SecretString'])
+            return secret_data.get('api_key')
+        except ClientError:
+            return os.getenv("API_KEY")
+    
+    def _get_client_ip(self, request: Request) -> str:
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+    
+    async def dispatch(self, request: Request, call_next):
+        client_ip = self._get_client_ip(request)
+        
+        # Rate limiting
+        if not self.rate_limiter.is_allowed(client_ip):
+            self.audit_logger.warning(f"Rate limit exceeded for {client_ip}")
+            return HTTPException(status_code=429, detail="Rate limit exceeded")
+        
+        # API key authentication (if enabled)
+        if self.require_api_key and request.url.path != "/health":
+            api_key = request.headers.get("X-API-Key")
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                api_key = auth_header[7:]
+            
+            if not api_key or api_key != self.api_key:
+                self.audit_logger.warning(f"Unauthorized access attempt from {client_ip}")
+                return HTTPException(status_code=401, detail="Invalid or missing API key")
+        
+        # Process request
+        response = await call_next(request)
+        
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        
+        # Audit logging
+        if request.url.path == "/mcp":
+            self.audit_logger.info(f"MCP request from {client_ip} - Status: {response.status_code}")
+        
+        return response
+
+# Add security middleware
+app.add_middleware(SecurityMiddleware)
 
 # =============================================================================
 # BEDROCK MODEL ABSTRACTIONS
