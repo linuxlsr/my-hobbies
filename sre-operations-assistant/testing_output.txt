@@ -1,0 +1,100 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/soops/my-hobbies/sre-operations-assistant
+plugins: anyio-4.10.0, mock-3.14.1, langsmith-0.3.45, asyncio-1.1.0, cov-6.2.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 27 items
+
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_execute_automated_patching_success PASSED [  3%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_execute_automated_patching_without_rollback PASSED [  7%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_rollback_changes_success PASSED [ 11%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_rollback_changes_failure PASSED [ 14%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_create_approval_workflow_auto_approve PASSED [ 18%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_create_approval_workflow_manual_approval PASSED [ 22%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_create_approval_workflow_critical PASSED [ 25%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_capture_system_state PASSED [ 29%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_generate_rollback_commands PASSED [ 33%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_verify_system_health PASSED [ 37%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_execute_automated_patching_error_handling PASSED [ 40%]
+testing/unit/test_automated_patching.py::TestAutomatedPatching::test_create_approval_workflow_error_handling PASSED [ 44%]
+testing/unit/test_basic_framework.py::test_python_version PASSED         [ 48%]
+testing/unit/test_basic_framework.py::test_imports PASSED                [ 51%]
+testing/unit/test_basic_framework.py::test_mock_data_loading PASSED      [ 55%]
+testing/unit/test_basic_framework.py::test_basic_assertions PASSED       [ 59%]
+testing/unit/test_basic_framework.py::test_mock_aws_response PASSED      [ 62%]
+testing/unit/test_basic_framework.py::TestFrameworkSetup::test_fixture_availability PASSED [ 66%]
+testing/unit/test_basic_framework.py::TestFrameworkSetup::test_directory_structure PASSED [ 70%]
+testing/unit/test_basic_framework.py::TestFrameworkSetup::test_requirements_file PASSED [ 74%]
+testing/unit/test_mcp_functions.py::TestAWSInspector::test_get_findings_success PASSED [ 77%]
+testing/unit/test_mcp_functions.py::TestAWSInspector::test_get_findings_pagination PASSED [ 81%]
+testing/unit/test_mcp_functions.py::TestAWSInspector::test_get_findings_error_handling PASSED [ 85%]
+testing/unit/test_mcp_functions.py::TestAWSCloudWatch::test_get_metrics_success PASSED [ 88%]
+testing/unit/test_mcp_functions.py::TestAWSCloudWatch::test_get_metrics_no_data PASSED [ 92%]
+testing/unit/test_mcp_functions.py::TestMCPServerEndpoints::test_get_inspector_findings PASSED [ 96%]
+testing/unit/test_mcp_functions.py::TestMCPServerEndpoints::test_analyze_ec2_vulnerabilities PASSED [100%]
+
+============================== 27 passed in 0.76s ==============================
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/soops/my-hobbies/sre-operations-assistant
+plugins: anyio-4.10.0, mock-3.14.1, langsmith-0.3.45, asyncio-1.1.0, cov-6.2.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 7 items
+
+testing/integration/test_basic_integration.py::TestBasicIntegration::test_health_endpoint_reachable PASSED [ 14%]
+testing/integration/test_basic_integration.py::TestBasicIntegration::test_mcp_endpoint_structure PASSED [ 28%]
+testing/integration/test_basic_integration.py::TestBasicIntegration::test_request_timeout_handling PASSED [ 42%]
+testing/integration/test_basic_integration.py::TestBasicIntegration::test_json_payload_formatting PASSED [ 57%]
+testing/integration/test_basic_integration.py::TestFrameworkCapabilities::test_concurrent_request_simulation PASSED [ 71%]
+testing/integration/test_basic_integration.py::TestFrameworkCapabilities::test_error_scenario_handling PASSED [ 85%]
+testing/integration/test_basic_integration.py::TestFrameworkCapabilities::test_response_validation PASSED [100%]
+
+============================== 7 passed in 12.05s ==============================
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/soops/my-hobbies/sre-operations-assistant
+plugins: anyio-4.10.0, mock-3.14.1, langsmith-0.3.45, asyncio-1.1.0, cov-6.2.1
+asyncio: mode=strict, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 20 items
+
+testing/regression/test_cli_regression.py::TestCLIRegression::test_cli_help_command PASSED [  5%]
+testing/regression/test_cli_regression.py::TestCLIRegression::test_cli_status_command PASSED [ 10%]
+testing/regression/test_cli_regression.py::TestCLIRegression::test_cli_metrics_all_instances PASSED [ 15%]
+testing/regression/test_cli_regression.py::TestCLIRegression::test_cli_metrics_specific_instance PASSED [ 20%]
+testing/regression/test_cli_regression.py::TestCLIRegression::test_cli_vulnerability_scan PASSED [ 25%]
+testing/regression/test_cli_regression.py::TestCLIRegression::test_cli_list_instances PASSED [ 30%]
+testing/regression/test_cli_regression.py::TestCLIRegression::test_cli_config_command PASSED [ 35%]
+testing/regression/test_slack_new_commands.py::TestNewSlackCommands::test_sre_patch_status_endpoint PASSED [ 40%]
+testing/regression/test_slack_new_commands.py::TestNewSlackCommands::test_sre_security_events_endpoint PASSED [ 45%]
+testing/regression/test_slack_new_commands.py::TestNewSlackCommands::test_slack_command_structure PASSED [ 50%]
+testing/regression/test_slack_new_commands.py::TestNewSlackCommands::test_command_parameter_handling PASSED [ 55%]
+testing/regression/test_slack_regression.py::TestSlackBotRegression::test_vulnerability_scan_endpoint PASSED [ 60%]
+testing/regression/test_slack_regression.py::TestSlackBotRegression::test_patch_compliance_endpoint PASSED [ 65%]
+testing/regression/test_slack_regression.py::TestSlackBotRegression::test_metrics_endpoint_single_instance PASSED [ 70%]
+testing/regression/test_slack_regression.py::TestSlackBotRegression::test_metrics_endpoint_all_instances PASSED [ 75%]
+testing/regression/test_slack_regression.py::TestSlackBotRegression::test_health_endpoint_stability PASSED [ 80%]
+testing/regression/test_slack_regression.py::TestSlackBotRegression::test_invalid_method_handling PASSED [ 85%]
+testing/regression/test_slack_regression.py::TestSlackBotRegression::test_malformed_request_handling PASSED [ 90%]
+testing/regression/test_slack_regression.py::TestSlackBotStability::test_concurrent_slack_requests PASSED [ 95%]
+testing/regression/test_slack_regression.py::TestSlackBotStability::test_large_response_handling PASSED [100%]
+
+============================= 20 passed in 32.27s ==============================
+🚀 SRE Operations Assistant Test Suite
+==================================================
+🧪 Running unit tests...
+🔗 Running integration tests...
+⚡ Running load tests...
+Starting Locust load test (run for 60 seconds)...
+🔄 Running regression tests...
+
+==================================================
+📊 Test Results Summary:
+  Unit Tests: ✅ PASSED
+  Integration Tests: ✅ PASSED
+  Load Tests: ✅ PASSED
+  Regression Tests: ✅ PASSED
+
+🎉 All tests passed!

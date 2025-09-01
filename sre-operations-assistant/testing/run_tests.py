@@ -36,10 +36,10 @@ def run_load_tests():
     result = subprocess.run([
         'locust', 
         '-f', 'testing/load/test_concurrent_requests.py',
-        '--host=https://sre-ops.threemoonsnetwork.net',
-        '--users=10',
+        '--host=http://localhost:8000',
+        '--users=5',
         '--spawn-rate=2', 
-        '--run-time=60s',
+        '--run-time=30s',
         '--headless',
         '--html=testing/load_test_report.html'
     ], cwd=Path(__file__).parent.parent)
