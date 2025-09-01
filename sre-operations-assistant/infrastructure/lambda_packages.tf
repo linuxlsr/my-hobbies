@@ -44,3 +44,10 @@ EOF
     filename = "index.py"
   }
 }
+
+data "archive_file" "metrics_collector_zip" {
+  type        = "zip"
+  output_path = "${path.module}/metrics_collector.zip"
+  source_file = "${path.module}/../bots/metrics_collector.py"
+  output_file_mode = "0666"
+}
