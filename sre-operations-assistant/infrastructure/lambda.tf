@@ -16,7 +16,7 @@ resource "aws_lambda_function" "slack_bot" {
       S3_BUCKET         = aws_s3_bucket.sre_artifacts.bucket
       BEDROCK_MODEL_ID  = var.bedrock_model_id
       SLACK_SECRET_ARN  = aws_secretsmanager_secret.slack_token.arn
-      MCP_SERVER_URL    = "http://${aws_lb.sre_alb.dns_name}"
+      MCP_SERVER_URL    = "https://sre-ops.threemoonsnetwork.net"
     }
   }
 
