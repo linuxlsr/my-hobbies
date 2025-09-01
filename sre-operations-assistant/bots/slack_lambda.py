@@ -808,6 +808,14 @@ def handler(event, context):
     if event.get('async_patch_status'):
         return handle_async_patch_status(event)
     
+    # Handle async SRE patch status
+    if event.get('async_sre_patch_status'):
+        return handle_async_sre_patch_status(event)
+    
+    # Handle async SRE security events
+    if event.get('async_sre_security_events'):
+        return handle_async_sre_security_events(event)
+    
     # Handle async metrics
     if event.get('async_metrics'):
         return handle_async_metrics(event)
@@ -1187,6 +1195,86 @@ def handler(event, context):
                 }
             
 
+            
+            elif command == '/sre-patch-status':
+                import boto3
+                
+                instance_id = text.strip() if text else None
+                response_url = parsed.get('response_url', [''])[0]
+                
+                # Invoke async processing for patch status
+                lambda_client = boto3.client('lambda')
+                async_payload = {
+                    'async_sre_patch_status': True,
+                    'instance_id': instance_id,
+                    'response_url': response_url
+                }
+                
+                try:
+                    lambda_client.invoke(
+                        FunctionName=context.function_name,
+                        InvocationType='Event',
+                        Payload=json.dumps(async_payload)
+                    )
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': json.dumps({
+                            'response_type': 'in_channel',
+                            'text': f':mag: Checking patch status{f" for {instance_id}" if instance_id else " for all instances"}... results will appear shortly'
+                        })
+                    }
+                    
+                except Exception as e:
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': json.dumps({
+                            'response_type': 'ephemeral',
+                            'text': f':x: Error starting patch status check: {str(e)}'
+                        })
+                    }
+            
+            elif command == '/sre-security-events':
+                import boto3
+                
+                time_range = text.strip() if text else '24h'
+                response_url = parsed.get('response_url', [''])[0]
+                
+                # Invoke async processing for security events
+                lambda_client = boto3.client('lambda')
+                async_payload = {
+                    'async_sre_security_events': True,
+                    'time_range': time_range,
+                    'response_url': response_url
+                }
+                
+                try:
+                    lambda_client.invoke(
+                        FunctionName=context.function_name,
+                        InvocationType='Event',
+                        Payload=json.dumps(async_payload)
+                    )
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': json.dumps({
+                            'response_type': 'in_channel',
+                            'text': f':shield: Analyzing security events for {time_range}... results will appear shortly'
+                        })
+                    }
+                    
+                except Exception as e:
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json'},
+                        'body': json.dumps({
+                            'response_type': 'ephemeral',
+                            'text': f':x: Error starting security events analysis: {str(e)}'
+                        })
+                    }
         
         return {
             'statusCode': 200,
@@ -1200,3 +1288,185 @@ def handler(event, context):
             'headers': {'Content-Type': 'application/json'},
             'body': json.dumps({'text': f'Error: {str(e)}'})
         }
+
+def handle_async_sre_patch_status(event):
+    """Handle async processing for SRE patch status check"""
+    instance_id = event.get('instance_id')
+    response_url = event.get('response_url')
+    
+    result_text = ''
+    
+    try:
+        alb_url = os.environ.get('MCP_SERVER_URL')
+        if not alb_url:
+            raise Exception('MCP_SERVER_URL environment variable not set')
+        
+        payload = json.dumps({
+            "method": "check_patch_compliance",
+            "params": {
+                "instance_ids": [instance_id] if instance_id else []
+            }
+        })
+        
+        response = requests.post(
+            f"{alb_url}/mcp",
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            if 'error' in data:
+                result_text = f'❌ Error checking patch status: {data["error"]}'
+            else:
+                display_name = instance_id if instance_id else "all instances"
+                
+                if instance_id:
+                    # Single instance details
+                    instance_data = data.get('instance_details', [{}])[0] if data.get('instance_details') else {}
+                    compliance = instance_data.get('compliance_status', 'unknown')
+                    missing = instance_data.get('missing_patches', 0)
+                    installed = instance_data.get('installed_patches', 0)
+                    
+                    status_emoji = '✅' if compliance == 'COMPLIANT' else '⚠️'
+                    result_text = f'🔍 **SRE Patch Status**: {display_name}\n'
+                    result_text += f'{status_emoji} **Compliance**: {compliance}\n'
+                    result_text += f'📦 **Missing patches**: {missing}\n'
+                    result_text += f'✅ **Installed patches**: {installed}\n'
+                    
+                    if missing > 0:
+                        result_text += f'\n💡 **Recommendation**: Schedule patching during next maintenance window'
+                else:
+                    # Summary for all instances
+                    summary = data.get('compliance_summary', {})
+                    total = summary.get('total_instances', 0)
+                    compliant = summary.get('compliant_instances', 0)
+                    non_compliant = summary.get('non_compliant_instances', 0)
+                    
+                    result_text = f'🔍 **SRE Patch Status Summary**\n'
+                    result_text += f'📊 **Total instances**: {total}\n'
+                    result_text += f'✅ **Compliant**: {compliant}\n'
+                    result_text += f'⚠️ **Non-compliant**: {non_compliant}\n'
+                    
+                    if non_compliant > 0:
+                        compliance_pct = (compliant / total * 100) if total > 0 else 0
+                        result_text += f'📈 **Compliance rate**: {compliance_pct:.1f}%\n'
+                        result_text += f'\n💡 **Action needed**: {non_compliant} instances require patching'
+        else:
+            result_text = f'❌ Failed to check patch status (HTTP {response.status_code})'
+            
+    except Exception as e:
+        display_name = instance_id if instance_id else 'instances'
+        result_text = f'❌ SRE patch status check failed for {display_name}: {str(e)[:100]}'
+    
+    # Send delayed response to Slack
+    delayed_payload = json.dumps({
+        'text': result_text,
+        'response_type': 'in_channel'
+    })
+    
+    try:
+        requests.post(response_url, data=delayed_payload, headers={'Content-Type': 'application/json'})
+    except Exception as e:
+        print(f"Failed to send delayed response: {e}")
+    
+    return {'statusCode': 200}
+
+def handle_async_sre_security_events(event):
+    """Handle async processing for SRE security events analysis"""
+    time_range = event.get('time_range', '24h')
+    response_url = event.get('response_url')
+    
+    result_text = ''
+    
+    try:
+        alb_url = os.environ.get('MCP_SERVER_URL')
+        if not alb_url:
+            raise Exception('MCP_SERVER_URL environment variable not set')
+        
+        payload = json.dumps({
+            "method": "monitor_security_events",
+            "params": {
+                "instance_ids": [],
+                "time_range": time_range
+            }
+        })
+        
+        response = requests.post(
+            f"{alb_url}/mcp",
+            data=payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            if 'error' in data:
+                result_text = f'❌ Error analyzing security events: {data["error"]}'
+            else:
+                events = data.get('security_events', [])
+                alerts = data.get('high_risk_alerts', [])
+                anomalies = data.get('anomalies', [])
+                total_instances = data.get('instances_monitored', 0)
+                
+                result_text = f'🛡️ **SRE Security Events Analysis** ({time_range})\n'
+                result_text += f'📊 **Instances monitored**: {total_instances}\n'
+                result_text += f'🔍 **Events analyzed**: {len(events)}\n'
+                result_text += f'🚨 **High-risk alerts**: {len(alerts)}\n'
+                result_text += f'⚠️ **Anomalies detected**: {len(anomalies)}\n\n'
+                
+                if alerts:
+                    result_text += f'🚨 **CRITICAL SECURITY ALERTS**:\n'
+                    for alert in alerts[:3]:  # Show top 3 alerts
+                        alert_type = alert.get('type', 'Unknown')
+                        severity = alert.get('severity', 'Unknown')
+                        instance = alert.get('instance_id', 'Unknown')
+                        description = alert.get('description', 'No description')
+                        
+                        severity_emoji = {
+                            'CRITICAL': '🔴',
+                            'HIGH': '🟡',
+                            'MEDIUM': '🟠',
+                            'LOW': '🟢'
+                        }.get(severity, '⚪')
+                        
+                        result_text += f'{severity_emoji} **{alert_type}** on {instance}\n'
+                        result_text += f'   📝 {description[:100]}\n\n'
+                    
+                    if len(alerts) > 3:
+                        result_text += f'... and {len(alerts) - 3} more alerts\n\n'
+                
+                if anomalies:
+                    result_text += f'⚠️ **BEHAVIORAL ANOMALIES**:\n'
+                    for anomaly in anomalies[:2]:  # Show top 2 anomalies
+                        anomaly_type = anomaly.get('type', 'Unknown')
+                        risk_score = anomaly.get('risk_score', 0)
+                        description = anomaly.get('description', 'No description')
+                        
+                        result_text += f'📊 **{anomaly_type}** (Risk: {risk_score}/10)\n'
+                        result_text += f'   📝 {description[:100]}\n\n'
+                
+                if not alerts and not anomalies:
+                    result_text += f'✅ **All Clear**: No high-risk security events detected\n'
+                    result_text += f'🔒 Security posture appears normal for monitored timeframe'
+                else:
+                    result_text += f'\n💡 **Recommendation**: Review alerts and consider immediate remediation for critical issues'
+        else:
+            result_text = f'❌ Failed to analyze security events (HTTP {response.status_code})'
+            
+    except Exception as e:
+        result_text = f'❌ SRE security events analysis failed: {str(e)[:100]}'
+    
+    # Send delayed response to Slack
+    delayed_payload = json.dumps({
+        'text': result_text,
+        'response_type': 'in_channel'
+    })
+    
+    try:
+        requests.post(response_url, data=delayed_payload, headers={'Content-Type': 'application/json'})
+    except Exception as e:
+        print(f"Failed to send delayed response: {e}")
+    
+    return {'statusCode': 200}

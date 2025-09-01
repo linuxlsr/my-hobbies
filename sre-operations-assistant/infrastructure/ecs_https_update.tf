@@ -3,16 +3,11 @@ data "aws_ecs_cluster" "existing_cluster" {
   cluster_name = "sre-ops-assistant-cluster"
 }
 
-data "aws_ecs_service" "existing_service" {
-  service_name = "sre-ops-assistant-mcp-server"
-  cluster_arn  = data.aws_ecs_cluster.existing_cluster.arn
-}
-
 # Update existing ECS service to use HTTPS target group
 resource "aws_ecs_service" "sre_mcp_server_https" {
   name            = "sre-ops-assistant-mcp-server-https"
   cluster         = data.aws_ecs_cluster.existing_cluster.id
-  task_definition = data.aws_ecs_service.existing_service.task_definition
+  task_definition = aws_ecs_task_definition.mcp_server.arn
   desired_count   = 2
   launch_type     = "FARGATE"
 
