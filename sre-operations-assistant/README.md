@@ -70,7 +70,7 @@ terraform apply
 ### 2. Use the CLI
 ```bash
 cd cli
-terraform apply chat
+python3 sre_cli.py chat
 ```
 
 ### 3. Test the API
@@ -83,16 +83,16 @@ curl https://sre-ops.your-domain.com/health
 ### CLI Commands
 ```bash
 # Interactive chat mode
-terraform apply chat
+python3 sre_cli.py chat
 
 # Direct queries
-terraform apply ask "scan all vulnerabilities"
-terraform apply ask "show CPU metrics for your-instance-name"
-terraform apply ask "list all instances"
+python3 sre_cli.py ask "scan all vulnerabilities"
+python3 sre_cli.py ask "show CPU metrics for your-instance-name"
+python3 sre_cli.py ask "list all instances"
 
 # Configuration
-terraform apply config
-terraform apply config --remote-url https://your-endpoint.com
+python3 sre_cli.py config
+python3 sre_cli.py config --remote-url https://your-endpoint.com
 ```
 
 ### Slack Integration
