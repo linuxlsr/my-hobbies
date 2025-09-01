@@ -149,13 +149,14 @@ Subscribe to `sre-ops-security-alerts` topic for security events.
 
 ```bash
 # Run structural tests
-terraform apply
+python3 tests/run_tests.py
 
 # Run functional tests
-terraform apply
+python3 tests/functional_tests.py
 
 # Test CLI commands
-terraform apply
+python3 cli/sre_cli.py --help
+python3 cli/sre_cli.py ask "status"
 ```
 
 ## 📁 Project Structure
