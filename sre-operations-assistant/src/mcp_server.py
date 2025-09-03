@@ -135,9 +135,9 @@ class BedrockModelInterface(ABC):
         pass
 
 class TitanTextModel(BedrockModelInterface):
-    """Amazon Titan Text Premier model implementation"""
+    """Amazon Titan Text Express model implementation"""
     
-    def __init__(self, model_id: str = "amazon.titan-text-premier-v1:0"):
+    def __init__(self, model_id: str = "amazon.titan-text-express-v1"):
         self.model_id = model_id
         self.bedrock = boto3.client('bedrock-runtime')
     
