@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Powerball Statistical Edge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .powerball-number { 
+            display: inline-block; 
+            width: 40px; 
+            height: 40px; 
+            line-height: 40px; 
+            text-align: center; 
+            border-radius: 50%; 
+            margin: 2px;
+            font-weight: bold;
+        }
+        .white-ball { background-color: #f8f9fa; border: 2px solid #dee2e6; color: #212529; }
+        .red-ball { background-color: #dc3545; color: white; }
+        .confidence-high { color: #198754; }
+        .confidence-medium { color: #ffc107; }
+        .confidence-low { color: #dc3545; }
+        .card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-predict { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; }
+        .btn-predict:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-chart-line"></i> Powerball Statistical Edge
+            </span>
+            <span class="navbar-text">
+                <small>Data-Driven Number Intelligence</small>
+            </span>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Status Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-line"></i> System Status</h5>
+                    </div>
+                    <div class="card-body" id="status-card">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prediction Generator -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-magic"></i> Generate Predictions</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="prediction-form">
+                            <div class="mb-3">
+                                <label for="tickets" class="form-label">Number of Tickets</label>
+                                <select class="form-select" id="tickets">
+                                    <option value="1">1 Ticket</option>
+                                    <option value="3" selected>3 Tickets</option>
+                                    <option value="5">5 Tickets</option>
+                                    <option value="10">10 Tickets</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="strategy" class="form-label">Strategy</label>
+                                <select class="form-select" id="strategy">
+                                    <option value="balanced" selected>Balanced</option>
+                                    <option value="portfolio">Portfolio (Mixed)</option>
+                                    <option value="frequency_based">Frequency Based</option>
+                                    <option value="gap_based">Gap Based</option>
+                                    <option value="monte_carlo">Monte Carlo</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-predict text-white w-100">
+                                <i class="fas fa-dice"></i> Generate Numbers
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Strategy Explanations -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-info-circle"></i> Prediction Strategies</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion accordion-flush" id="strategyAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#balanced">
+                                        <strong>Balanced</strong>
+                                    </button>
+                                </h2>
+                                <div id="balanced" class="accordion-collapse collapse" data-bs-parent="#strategyAccordion">
+                                    <div class="accordion-body small">
+                                        Combines frequent and overdue numbers for optimal coverage. Uses 60% frequent numbers and 40% overdue numbers.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#portfolio">
+                                        <strong>Portfolio</strong>
+                                    </button>
+                                </h2>
+                                <div id="portfolio" class="accordion-collapse collapse" data-bs-parent="#strategyAccordion">
+                                    <div class="accordion-body small">
+                                        Generates tickets using different strategies to diversify your number selection approach.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#frequency">
+                                        <strong>Frequency Based</strong>
+                                    </button>
+                                </h2>
+                                <div id="frequency" class="accordion-collapse collapse" data-bs-parent="#strategyAccordion">
+                                    <div class="accordion-body small">
+                                        Focuses on numbers that have appeared most frequently in historical drawings.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gap">
+                                        <strong>Gap Based</strong>
+                                    </button>
+                                </h2>
+                                <div id="gap" class="accordion-collapse collapse" data-bs-parent="#strategyAccordion">
+                                    <div class="accordion-body small">
+                                        Targets numbers that haven't appeared recently and are "due" to be drawn.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#monte">
+                                        <strong>Monte Carlo</strong>
+                                    </button>
+                                </h2>
+                                <div id="monte" class="accordion-collapse collapse" data-bs-parent="#strategyAccordion">
+                                    <div class="accordion-body small">
+                                        Uses statistical simulation to model thousands of potential outcomes and select optimal numbers.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-ticket-alt"></i> Predictions</h5>
+                    </div>
+                    <div class="card-body" id="predictions-card">
+                        <div class="text-muted text-center py-4">
+                            <i class="fas fa-arrow-left"></i> Generate predictions to see results
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Statistical Analysis</h5>
+                        <button class="btn btn-outline-light btn-sm" id="refresh-analysis">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body" id="analysis-card">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Important Disclaimer</h6>
+                    <p class="mb-0">
+                        <strong>This tool is for educational and entertainment purposes only.</strong>
+                        Statistical analysis cannot change lottery odds (1 in 292 million).
+                        No system can predict or guarantee wins. Play responsibly and within your means.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load system status
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const statusCard = document.getElementById('status-card');
+                if (data.status === 'ok') {
+                    statusCard.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-success">${data.total_drawings}</h4>
+                                    <small class="text-muted">Total Drawings</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-center">
+                                    <h6>${data.date_range.earliest} to ${data.date_range.latest}</h6>
+                                    <small class="text-muted">Date Range</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h4 class="text-success">${Math.round(data.data_quality * 100)}%</h4>
+                                    <small class="text-muted">Data Quality</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusCard.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> Database not connected. 
+                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="updateData()">Initialize Data</button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+            }
+        }
+
+        // Load analysis
+        async function loadAnalysis() {
+            try {
+                const response = await fetch('/api/analyze');
+                const data = await response.json();
+                
+                const analysisCard = document.getElementById('analysis-card');
+                if (data.error) {
+                    analysisCard.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+
+                const exclusiveGroups = data.exclusive_groups;
+                
+                if (exclusiveGroups) {
+                    analysisCard.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-fire"></i> Most Frequent White Balls</h6>
+                                <div class="mb-3">
+                                    ${exclusiveGroups.exclusive_frequent_white.map(num => 
+                                        `<span class="powerball-number white-ball">${num}</span>`
+                                    ).join('')}
+                                </div>
+                                <h6><i class="fas fa-clock"></i> Most Overdue White Balls</h6>
+                                <div>
+                                    ${exclusiveGroups.exclusive_overdue_white.map(num => 
+                                        `<span class="powerball-number white-ball" title="Overdue">${num}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-fire text-danger"></i> Most Frequent Red Balls</h6>
+                                <div class="mb-3">
+                                    ${exclusiveGroups.exclusive_frequent_red.map(num => 
+                                        `<span class="powerball-number red-ball">${num}</span>`
+                                    ).join('')}
+                                </div>
+                                <h6><i class="fas fa-clock text-danger"></i> Most Overdue Red Balls</h6>
+                                <div>
+                                    ${exclusiveGroups.exclusive_overdue_red.map(num => 
+                                        `<span class="powerball-number red-ball" title="Overdue">${num}</span>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading analysis:', error);
+            }
+        }
+
+        // Generate predictions
+        document.getElementById('prediction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const tickets = document.getElementById('tickets').value;
+            const strategy = document.getElementById('strategy').value;
+            
+            const predictionsCard = document.getElementById('predictions-card');
+            predictionsCard.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Generating...</span>
+                    </div>
+                    <p class="mt-2">Analyzing statistical patterns...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tickets: parseInt(tickets), strategy })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    predictionsCard.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+                
+                const predictions = data.predictions;
+                const summary = data.summary;
+                
+                let html = `
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                <h5>${predictions.length}</h5>
+                                <small class="text-muted">Predictions</small>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <h5 class="confidence-${summary.average_confidence > 0.7 ? 'high' : summary.average_confidence > 0.6 ? 'medium' : 'low'}">
+                                    ${Math.round(summary.average_confidence * 100)}%
+                                </h5>
+                                <small class="text-muted">Avg Confidence</small>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <h5>$${predictions.length * 2}</h5>
+                                <small class="text-muted">Total Cost</small>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                `;
+                
+                predictions.forEach(pred => {
+                    const confidenceClass = pred.confidence_score > 0.7 ? 'high' : pred.confidence_score > 0.6 ? 'medium' : 'low';
+                    html += `
+                        <div class="mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0">Ticket #${pred.ticket_number}</h6>
+                                <span class="badge bg-secondary">${pred.strategy.replace('_', ' ')}</span>
+                            </div>
+                            <div class="mb-2">
+                                ${pred.numbers.map(num => `<span class="powerball-number white-ball">${num}</span>`).join('')}
+                                <span class="powerball-number red-ball">${pred.powerball}</span>
+                            </div>
+                            <div class="small">
+                                <span class="confidence-${confidenceClass}">
+                                    <i class="fas fa-chart-line"></i> ${Math.round(pred.confidence_score * 100)}% confidence
+                                </span>
+                                <br>
+                                <span class="text-muted">${pred.reasoning}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                    <div class="alert alert-info">
+                        <strong>Recommendation:</strong> ${summary.recommendation}
+                    </div>
+                `;
+                
+                predictionsCard.innerHTML = html;
+                
+            } catch (error) {
+                predictionsCard.innerHTML = `<div class="alert alert-danger">Error generating predictions: ${error.message}</div>`;
+            }
+        });
+
+        // Update data
+        async function updateData() {
+            try {
+                const response = await fetch('/api/update-data', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    loadStatus();
+                    loadAnalysis();
+                }
+            } catch (error) {
+                console.error('Error updating data:', error);
+            }
+        }
+
+        // Refresh analysis
+        document.getElementById('refresh-analysis').addEventListener('click', loadAnalysis);
+
+        // Load initial data
+        loadStatus();
+        loadAnalysis();
+    </script>
+</body>
+</html>

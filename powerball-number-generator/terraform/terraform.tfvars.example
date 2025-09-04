@@ -1,0 +1,14 @@
+# Copy this file to terraform.tfvars and customize values
+
+aws_region = "<region>>"
+environment = "<env>>"
+app_name = "<your preferred name>"
+domain_name = "<your domain name>"
+
+# Resource sizing (cost optimization)
+container_cpu = 256      # 0.25 vCPU
+container_memory = 512   # 512 MB
+desired_count = 1        # Single instance
+
+# Logging
+log_retention_days = 7   # Minimal log retention for cost
