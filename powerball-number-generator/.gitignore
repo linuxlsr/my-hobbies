@@ -1,0 +1,17 @@
+*.pyc
+__pycache__/
+.env
+.env.local
+.terraform/
+*.tfstate
+*.tfstate.backup
+.pytest_cache/
+node_modules/
+.DS_Store
+*.log
+data/*.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
