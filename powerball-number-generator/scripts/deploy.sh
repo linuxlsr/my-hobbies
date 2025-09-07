@@ -4,9 +4,12 @@ set -e
 echo "🚀 Deploying PowerballAI with FastAPI to AWS ECS"
 
 # Load environment variables
-if [ -f "../env.local" ]; then
-    source ../env.local
+if [ -f "env.local" ]; then
+    source env.local
     echo "✅ Loaded configuration from env.local"
+elif [ -f "../env.local" ]; then
+    source ../env.local
+    echo "✅ Loaded configuration from ../env.local"
 else
     echo "❌ Please create env.local from env.template with your AWS account ID and domain"
     exit 1

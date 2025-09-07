@@ -40,9 +40,9 @@
     </nav>
 
     <div class="container mt-4">
-        <!-- Status Card -->
+        <!-- Status and Latest Drawing Cards -->
         <div class="row mb-4">
-            <div class="col-12">
+            <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-chart-line"></i> System Status</h5>
@@ -50,6 +50,20 @@
                     <div class="card-body" id="status-card">
                         <div class="text-center">
                             <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-trophy"></i> Latest Drawing</h5>
+                    </div>
+                    <div class="card-body" id="latest-drawing-card">
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
@@ -227,24 +241,29 @@
                 if (data.status === 'ok') {
                     statusCard.innerHTML = `
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="text-center">
                                     <h4 class="text-success">${data.total_drawings}</h4>
                                     <small class="text-muted">Total Drawings</small>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="text-center">
                                     <h6>${data.date_range.earliest} to ${data.date_range.latest}</h6>
                                     <small class="text-muted">Date Range</small>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="text-center">
                                     <h4 class="text-success">${Math.round(data.data_quality * 100)}%</h4>
                                     <small class="text-muted">Data Quality</small>
                                 </div>
                             </div>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <button class="btn btn-outline-primary btn-sm" onclick="updateData()">
+                                <i class="fas fa-sync-alt"></i> Check for New Drawings
+                            </button>
                         </div>
                     `;
                 } else {
@@ -257,6 +276,53 @@
                 }
             } catch (error) {
                 console.error('Error loading status:', error);
+            }
+        }
+
+        // Load latest drawing
+        async function loadLatestDrawing() {
+            try {
+                const response = await fetch('/api/latest-drawing');
+                const data = await response.json();
+                
+                const latestCard = document.getElementById('latest-drawing-card');
+                if (data.draw_date) {
+                    const drawDate = new Date(data.draw_date).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                    
+                    latestCard.innerHTML = `
+                        <div class="text-center">
+                            <div class="mb-2">
+                                <small class="text-muted">${drawDate}</small>
+                            </div>
+                            <div class="mb-2">
+                                ${data.numbers.map(num => `<span class="powerball-number white-ball">${num}</span>`).join('')}
+                                <span class="powerball-number red-ball">${data.powerball}</span>
+                            </div>
+                            ${data.multiplier ? `<div class="small text-muted">Multiplier: ${data.multiplier}x</div>` : ''}
+                            ${data.jackpot_amount ? `<div class="small text-success">$${(data.jackpot_amount / 1000000).toFixed(0)}M</div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    latestCard.innerHTML = `
+                        <div class="text-muted text-center">
+                            <i class="fas fa-info-circle"></i><br>
+                            No drawing data available
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading latest drawing:', error);
+                document.getElementById('latest-drawing-card').innerHTML = `
+                    <div class="text-muted text-center">
+                        <i class="fas fa-exclamation-triangle"></i><br>
+                        Unable to load
+                    </div>
+                `;
             }
         }
 
@@ -408,15 +474,43 @@
         // Update data
         async function updateData() {
             try {
+                // Show loading state
+                document.getElementById('status-card').innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border" role="status"></div>
+                        <p class="mt-2">Checking for new drawings...</p>
+                    </div>
+                `;
+                
                 const response = await fetch('/api/update-data', { method: 'POST' });
                 const data = await response.json();
                 
                 if (data.status === 'success') {
                     loadStatus();
+                    loadLatestDrawing();
                     loadAnalysis();
+                    
+                    // Show success message briefly
+                    const statusCard = document.getElementById('status-card');
+                    const originalContent = statusCard.innerHTML;
+                    statusCard.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> Data updated successfully!
+                            ${data.latest_drawing ? 'Latest drawing loaded.' : 'No new drawings found.'}
+                        </div>
+                    `;
+                    
+                    setTimeout(() => {
+                        loadStatus();
+                    }, 3000);
                 }
             } catch (error) {
                 console.error('Error updating data:', error);
+                document.getElementById('status-card').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Error updating data: ${error.message}
+                    </div>
+                `;
             }
         }
 
@@ -425,6 +519,7 @@
 
         // Load initial data
         loadStatus();
+        loadLatestDrawing();
         loadAnalysis();
     </script>
 </body>

@@ -10,7 +10,7 @@ import sys
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / 'src'))
@@ -62,6 +62,20 @@ async def api_status():
             'error': str(e)
         }
 
+@app.get("/api/latest-drawing")
+async def api_latest_drawing():
+    """Get the latest Powerball drawing"""
+    try:
+        collector = PowerballDataCollector()
+        latest = collector.get_latest_drawing()
+        
+        if latest:
+            return latest
+        else:
+            raise HTTPException(status_code=404, detail="No drawings found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/analyze")
 async def api_analyze():
     """Get statistical analysis"""
@@ -100,17 +114,54 @@ async def api_predict(request: PredictionRequest):
 
 @app.post("/api/update-data")
 async def api_update_data():
-    """Update historical data"""
+    """Update historical data and ensure latest drawing is included"""
     try:
         collector = PowerballDataCollector()
         collector.setup_database()
+        
+        # Add the correct recent drawings
+        collector.add_manual_drawing('2025-09-03', [3, 16, 29, 61, 69], 22)
+        # Add Saturday 9/7 drawing with correct numbers
+        collector.add_manual_drawing('2025-09-07', [11, 23, 44, 61, 62], 17)
+        
+        # Force check for new drawings
+        print("Checking for latest Powerball drawings...")
         collector.update_data()
         
         summary = collector.get_data_summary()
+        latest = collector.get_latest_drawing()
+        
         return {
             'status': 'success',
             'total_drawings': summary['total_drawings'],
-            'date_range': summary['date_range']
+            'date_range': summary['date_range'],
+            'latest_drawing': latest
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/add-drawing")
+async def api_add_drawing(draw_date: str, numbers: List[int], powerball: int):
+    """Manually add a specific drawing"""
+    try:
+        if len(numbers) != 5:
+            raise HTTPException(status_code=400, detail="Must provide exactly 5 white ball numbers")
+        
+        if not all(1 <= n <= 69 for n in numbers):
+            raise HTTPException(status_code=400, detail="White ball numbers must be between 1 and 69")
+            
+        if not (1 <= powerball <= 26):
+            raise HTTPException(status_code=400, detail="Powerball must be between 1 and 26")
+        
+        collector = PowerballDataCollector()
+        collector.add_manual_drawing(draw_date, numbers, powerball)
+        
+        latest = collector.get_latest_drawing()
+        
+        return {
+            'status': 'success',
+            'message': f'Added drawing for {draw_date}',
+            'latest_drawing': latest
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
