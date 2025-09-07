@@ -241,3 +241,9 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 */env.local
+
+# Database files
+*.db
+*.db.backup
+powerball.db
+powerball.db.backup
