@@ -1,0 +1,14 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: my-hobbies
+  description: >
+    Planning effort to make progress on hobby goals.
+  annotations:
+    github.com/project-slug: linuxlsr/my-hobbies
+  tags:
+    - personal
+spec:
+  type: other
+  lifecycle: experimental
+  owner: user:linuxlsr
